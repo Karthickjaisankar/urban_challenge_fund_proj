@@ -1,0 +1,211 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --paper: #fdfbf6;
+  --ink:   #171612;
+  --ink-soft: #3a382f;
+  --rule: rgba(15, 23, 42, 0.08);
+  --rule-strong: rgba(15, 23, 42, 0.16);
+  --saffron: #ff7722;
+  --ashoka:  #0c4ca3;
+  --emerald: #128807;
+  --magenta: #c4368e;
+  --ruby:    #b81d24;
+  --gold:    #d68b00;
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* numerical figures */
+.fig {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.display {
+  font-family: "Fraunces", "Instrument Serif", serif;
+  letter-spacing: -0.02em;
+  font-weight: 900;
+}
+
+/* Hero number — used by KPI tiles for the focal value */
+.hero-fig {
+  font-family: "Fraunces", "Instrument Serif", serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+/* Card — paper-like with elevation, supports colored top accent via --accent */
+.card {
+  background: #ffffff;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  box-shadow: 0 2px 0 rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.07), 0 18px 42px -22px rgba(15,23,42,0.12);
+  position: relative;
+  overflow: hidden;
+}
+.card-accent {
+  position: relative;
+}
+.card-accent::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  background: var(--accent, var(--ashoka));
+  border-radius: 16px 16px 0 0;
+}
+.card-tinted {
+  background: linear-gradient(180deg, var(--tint, rgba(12,76,163,0.04)) 0%, #ffffff 30%);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+}
+
+/* Section banner — bold colored bar that frames each section */
+.section-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(90deg, var(--banner-from, #0c4ca3) 0%, var(--banner-to, #0c4ca3) 100%);
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 14px -4px var(--banner-shadow, rgba(12, 76, 163, 0.35));
+}
+.section-banner-title {
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-banner-meta {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* Legacy section-label still used in popups */
+.section-label {
+  display: flex; align-items: center; gap: 0.625rem;
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.section-label::before {
+  content: "";
+  display: inline-block;
+  width: 16px;  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  opacity: 0.65;
+}
+
+/* tricolor strip */
+.tricolor-strip {
+  height: 3px;
+  background: linear-gradient(90deg, #ff7722 0% 33.3%, #ffffff 33.3% 66.6%, #128807 66.6% 100%);
+}
+
+/* Pulse */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.5); }
+}
+.pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+
+/* Shimmer for skeletons */
+@keyframes shimmer { 0% { background-position: -160px 0; } 100% { background-position: 160px 0; } }
+.skeleton {
+  background: linear-gradient(90deg, rgba(15,23,42,0.04) 0px, rgba(15,23,42,0.10) 40px, rgba(15,23,42,0.04) 80px);
+  background-size: 160px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+
+/* Counter flash */
+@keyframes counter-flash {
+  0% { color: var(--saffron); }
+  100% { color: inherit; }
+}
+.counter-flash { animation: counter-flash 600ms ease-out; }
+
+/* Floating overlay panel pop animation */
+@keyframes panel-pop {
+  0%   { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(0) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Leaflet — light editorial overrides */
+.leaflet-container {
+  background: transparent;
+  outline: none;
+  font-family: "Manrope", sans-serif;
+}
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: rgba(0, 0, 0, 0.4) !important;
+  font-size: 9px !important;
+  border: 1px solid var(--rule);
+}
+.leaflet-control-attribution a { color: var(--ashoka) !important; }
+
+/* Permanent region labels — bolder and more readable on colored basemap */
+.region-label {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: "Manrope", sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: rgba(15, 23, 42, 0.92);
+  text-shadow:
+     0 0 4px #ffffff,
+     0 1px 0 #ffffff, 0 -1px 0 #ffffff,
+     1px 0 0 #ffffff, -1px 0 0 #ffffff,
+     1px 1px 0 #ffffff, -1px -1px 0 #ffffff,
+     1px -1px 0 #ffffff, -1px 1px 0 #ffffff;
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 0 !important;
+  letter-spacing: 0;
+}
+.region-label.region-label--district {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.85);
+}
+.region-label.region-label--small { display: none; }
+.region-label.region-label--selected {
+  color: var(--ashoka);
+  font-weight: 900;
+  font-size: 13px;
+}
+
+/* Tooltip-on-hover styling */
+.iccc-tip {
+  background: #ffffff !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--rule-strong) !important;
+  border-radius: 8px !important;
+  font-family: "Manrope", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 9px !important;
+  box-shadow: 0 8px 24px -12px rgba(0,0,0,0.2) !important;
+}
+.iccc-tip::before { display: none; }

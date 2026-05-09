@@ -1,0 +1,19 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Node (keep frontend/dist committed — Railway needs the pre-built files)
+frontend/node_modules/
+
+# Large raw GeoJSON source files (regenerate via scripts/prepare_geo.py)
+data/geo/india_states.geojson
+data/geo/tn_districts.geojson
+
+# macOS
+.DS_Store
+
+# Skills / local tooling (not part of the app)
+.calude/

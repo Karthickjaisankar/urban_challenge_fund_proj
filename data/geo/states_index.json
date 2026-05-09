@@ -1,0 +1,254 @@
+[
+  {
+    "name": "Andaman and Nicobar",
+    "centroid": [
+      92.9691,
+      11.221
+    ]
+  },
+  {
+    "name": "Andhra Pradesh",
+    "centroid": [
+      79.9323,
+      15.7149
+    ]
+  },
+  {
+    "name": "Arunachal Pradesh",
+    "centroid": [
+      94.675,
+      28.039
+    ]
+  },
+  {
+    "name": "Assam",
+    "centroid": [
+      92.8292,
+      26.3569
+    ]
+  },
+  {
+    "name": "Bihar",
+    "centroid": [
+      85.6055,
+      25.6799
+    ]
+  },
+  {
+    "name": "Chandigarh",
+    "centroid": [
+      76.7664,
+      30.7404
+    ]
+  },
+  {
+    "name": "Chhattisgarh",
+    "centroid": [
+      82.0341,
+      21.266
+    ]
+  },
+  {
+    "name": "Dadra and Nagar Haveli",
+    "centroid": [
+      73.0802,
+      20.1936
+    ]
+  },
+  {
+    "name": "Daman and Diu",
+    "centroid": [
+      70.8671,
+      20.8186
+    ]
+  },
+  {
+    "name": "Delhi",
+    "centroid": [
+      77.1066,
+      28.6447
+    ]
+  },
+  {
+    "name": "Goa",
+    "centroid": [
+      74.0552,
+      15.3595
+    ]
+  },
+  {
+    "name": "Gujarat",
+    "centroid": [
+      71.5938,
+      22.6957
+    ]
+  },
+  {
+    "name": "Haryana",
+    "centroid": [
+      76.3315,
+      29.2012
+    ]
+  },
+  {
+    "name": "Himachal Pradesh",
+    "centroid": [
+      77.2337,
+      31.9283
+    ]
+  },
+  {
+    "name": "Jammu and Kashmir",
+    "centroid": [
+      76.6141,
+      33.7601
+    ]
+  },
+  {
+    "name": "Jharkhand",
+    "centroid": [
+      85.556,
+      23.6542
+    ]
+  },
+  {
+    "name": "Karnataka",
+    "centroid": [
+      76.1664,
+      14.7065
+    ]
+  },
+  {
+    "name": "Kerala",
+    "centroid": [
+      76.406,
+      10.4502
+    ]
+  },
+  {
+    "name": "Lakshadweep",
+    "centroid": [
+      72.8208,
+      10.5223
+    ]
+  },
+  {
+    "name": "Madhya Pradesh",
+    "centroid": [
+      78.2881,
+      23.5415
+    ]
+  },
+  {
+    "name": "Maharashtra",
+    "centroid": [
+      76.1086,
+      19.4505
+    ]
+  },
+  {
+    "name": "Manipur",
+    "centroid": [
+      93.8822,
+      24.7405
+    ]
+  },
+  {
+    "name": "Meghalaya",
+    "centroid": [
+      91.2799,
+      25.5376
+    ]
+  },
+  {
+    "name": "Mizoram",
+    "centroid": [
+      92.8391,
+      23.3094
+    ]
+  },
+  {
+    "name": "Nagaland",
+    "centroid": [
+      94.4712,
+      26.0685
+    ]
+  },
+  {
+    "name": "Orissa",
+    "centroid": [
+      84.4175,
+      20.5059
+    ]
+  },
+  {
+    "name": "Puducherry",
+    "centroid": [
+      78.8369,
+      11.9507
+    ]
+  },
+  {
+    "name": "Punjab",
+    "centroid": [
+      75.4093,
+      30.8458
+    ]
+  },
+  {
+    "name": "Rajasthan",
+    "centroid": [
+      73.848,
+      26.5822
+    ]
+  },
+  {
+    "name": "Sikkim",
+    "centroid": [
+      88.4749,
+      27.5719
+    ]
+  },
+  {
+    "name": "Tamil Nadu",
+    "centroid": [
+      78.4023,
+      11.006
+    ]
+  },
+  {
+    "name": "Telangana",
+    "centroid": [
+      79.0595,
+      17.7949
+    ]
+  },
+  {
+    "name": "Tripura",
+    "centroid": [
+      91.7463,
+      23.7474
+    ]
+  },
+  {
+    "name": "Uttar Pradesh",
+    "centroid": [
+      80.5615,
+      26.9263
+    ]
+  },
+  {
+    "name": "Uttaranchal",
+    "centroid": [
+      79.1963,
+      30.1569
+    ]
+  },
+  {
+    "name": "West Bengal",
+    "centroid": [
+      87.9744,
+      23.831
+    ]
+  }
+]
