@@ -1,34 +1,35 @@
+/**
+ * UCF · ICCC Dashboard
+ *
+ * Navigation flow:
+ *   India (home) → click state → State view (district ranking)
+ *                              → click district → District detail (all depts)
+ *
+ * Left sidebar: department FILTER for district ranking (optional).
+ * Right panel:  slides in when a state or district is selected.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLiveTick } from "@/hooks/useLiveTick";
-import { DEPT_REGISTRY } from "@/lib/constants";
+import { DEPT_REGISTRY, STATE_CAPITALS } from "@/lib/constants";
+import { TN_DISTRICTS, GJ_DISTRICTS, simulateDistrictKPIs } from "@/lib/simulateDistricts";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { ICCCMapCanvas } from "@/components/ICCCMapCanvas";
 import { HomeStatsStrip } from "@/components/HomeStatsStrip";
-import { StateDeptPanel } from "@/components/StateDeptPanel";
-import { DeptDetailPanel } from "@/components/DeptDetailPanel";
-import { TickerHeaderButton, TickerInbox } from "@/components/TickerSystem";
+import { StateDistrictPanel } from "@/components/StateDistrictPanel";
+import { DistrictDetailPanel } from "@/components/DistrictDetailPanel";
+import { TickerInbox } from "@/components/TickerSystem";
 
-/* ── Types ──────────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════ */
+
 type ViewLevel = "india" | "state" | "district";
 
-/* ── Helper ──────────────────────────────────────────────────────────────── */
-function lookupPath(obj: any, path: string[] | undefined): any {
-  if (!Array.isArray(path)) return undefined;
-  let cur = obj;
-  for (const p of path) { if (cur == null) return undefined; cur = cur[p]; }
-  return cur;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   App
-══════════════════════════════════════════════════════════════════════════ */
 export default function App() {
   const qc = useQueryClient();
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta, staleTime: 0, gcTime: 0 });
 
-  // Kill stale meta cache that's missing value_path
+  // Kill stale meta cache
   useEffect(() => {
     if (meta.data) {
       const h = meta.data.departments?.find((d: any) => d.code === "health");
@@ -38,178 +39,227 @@ export default function App() {
 
   const deptMetas: any[] = meta.data?.departments ?? [];
 
-  /* ── Navigation state ──────────────────────────────────────────────── */
+  /* ── Navigation state ─────────────────────────────────────────────── */
   const [view, setView]               = useState<ViewLevel>("india");
   const [stateName, setStateName]     = useState<string | null>(null);
   const [districtName, setDistrictName] = useState<string | null>(null);
-  const [activeDept, setActiveDept]   = useState<string | null>(null);
-  const [rightMode, setRightMode]     = useState<"none" | "state" | "dept">("none");
+  const [filterDept, setFilterDept]   = useState<string | null>(null);  // left panel filter
   const [tickerOpen, setTickerOpen]   = useState(false);
 
-  /* ── Data queries ─────────────────────────────────────────────────── */
-  // Live SSE tick for the active dept (falls back to health on home view)
-  const sseCode = activeDept ?? "health";
+  /* ── Right panel mode derived from view ──────────────────────────── */
+  const rightMode = view === "india" ? "none" : view === "state" ? "state" : "district";
+
+  /* ── Data ─────────────────────────────────────────────────────────── */
+  // SSE for the filter dept (or health as default for background data)
+  const sseCode = filterDept ?? "health";
   const { snapshot: sseSnap, connected } = useLiveTick(sseCode);
   const restSnap = useQuery({ queryKey: ["rest-snap", sseCode], queryFn: () => api.deptSnapshot(sseCode), staleTime: 0 });
   const snapshot = sseSnap ?? restSnap.data ?? null;
 
   // Per-dept funding for the selected state
-  const deptFunding = useQuery({
-    queryKey: ["funding-all"],
-    queryFn: async () => {
-      const results: Record<string, any> = {};
-      for (const d of DEPT_REGISTRY) {
-        const f = await api.deptFunding(d.code);
-        results[d.code] = f;
-      }
-      return results;
-    },
+  const stateFundingQuery = useQuery({
+    queryKey: ["funding", filterDept ?? "health"],
+    queryFn: () => api.deptFunding(filterDept ?? "health"),
     staleTime: 60_000,
   });
+  const stateFund = stateName ? stateFundingQuery.data?.per_state?.[stateName] : null;
 
-  // History for the active dept × state
-  const history = useQuery({
-    queryKey: ["history", activeDept, stateName],
-    queryFn: () =>
-      stateName && activeDept ? api.deptStateHistory(activeDept, stateName) : api.deptHistory(activeDept ?? "health"),
-    enabled: !!activeDept && rightMode === "dept",
-  });
-
-  // District snapshot (Health only)
+  // District snapshot (Health only — real)
   const districtSnap = useQuery({
     queryKey: ["district-snap", stateName],
     queryFn: () => api.districtSnapshot(stateName!),
-    enabled: view === "state" && activeDept === "health" && !!stateName,
+    enabled: view !== "india" && !!stateName,
     refetchInterval: 3000,
   });
 
-  // Ticket stats for badge
-  const ticketStats = useQuery({ queryKey: ["tickets-stats"], queryFn: api.ticketsStats, refetchInterval: 15_000 });
-  const openTickets = (ticketStats.data?.open ?? 0) + (ticketStats.data?.reviewing ?? 0);
-
-  /* ── Active dept meta ──────────────────────────────────────────────── */
-  const dept = useMemo(
-    () => deptMetas.find((d) => d.code === activeDept),
-    [deptMetas, activeDept],
-  );
-
-  /* ── Active dept KPI selector ─────────────────────────────────────── */
-  const [primaryKpi, setPrimaryKpi] = useState<string>("");
-  useEffect(() => {
-    if (dept?.kpis?.[0]?.code && primaryKpi !== dept.kpis[0].code) {
-      setPrimaryKpi(dept.kpis[0].code);
-    }
-  }, [dept?.code]);
-
-  const activeKpiMeta = dept?.kpis?.find((k: any) => k.code === primaryKpi);
-
-  // No choropleth coloring — map uses neutral fills for all states/districts.
-  // Colors are shown only in the right panel cards and KPI tiles, not on the map.
-
-  /* ── Per-state funding for right panel ────────────────────────────── */
-  const stateDeptFunding = useMemo(() => {
-    if (!stateName || !deptFunding.data) return null;
-    const out: Record<string, any> = {};
-    DEPT_REGISTRY.forEach(d => {
-      const df = deptFunding.data[d.code];
-      out[d.code] = df?.per_state?.[stateName] ?? null;
-    });
-    return out;
-  }, [deptFunding.data, stateName]);
-
-  // Pre-fetch all dept snapshots (for multi-dept state panel).
-  // We do this lazily once a state is selected to avoid 7 API calls on home view.
+  // All dept snapshots for district detail (lazy, loads when district selected)
   const [allDeptSnaps, setAllDeptSnaps] = useState<Record<string, any>>({});
   useEffect(() => {
-    if (!stateName) return;
+    if (!districtName) return;
     let cancelled = false;
     (async () => {
       const results: Record<string, any> = {};
       for (const d of DEPT_REGISTRY) {
-        try {
-          const snap = await api.deptSnapshot(d.code);
-          if (!cancelled) results[d.code] = snap;
-        } catch { /* skip silently */ }
+        try { results[d.code] = await api.deptSnapshot(d.code); } catch { /* skip */ }
       }
       if (!cancelled) setAllDeptSnaps(results);
     })();
     return () => { cancelled = true; };
-  }, [stateName]);
+  }, [districtName]);
 
-  /* ── Navigation helpers ────────────────────────────────────────────── */
+  // Ticket stats
+  const ticketStats = useQuery({ queryKey: ["tickets-stats"], queryFn: api.ticketsStats, refetchInterval: 15_000 });
+  const openTickets = (ticketStats.data?.open ?? 0) + (ticketStats.data?.reviewing ?? 0);
+
+  /* ── Active dept meta (for filter context) ───────────────────────── */
+  const filterDeptMeta = deptMetas.find((d) => d.code === filterDept);
+  const filterKpiMeta  = filterDeptMeta?.kpis?.[0];
+
+  /* ── District ranking for StateDistrictPanel ─────────────────────── */
+  const districtRows = useMemo(() => {
+    if (!stateName) return [];
+    const distList = stateName === "Gujarat" ? GJ_DISTRICTS : TN_DISTRICTS;
+
+    // Get KPI values per district
+    let distKpis: { region: string; kpis: Record<string, number> }[] = [];
+
+    if (filterDept === "health" && districtSnap.data) {
+      // Real Health district data
+      distKpis = Object.entries(districtSnap.data.districts).map(([region, s]: any) => ({
+        region, kpis: s.kpis ?? {},
+      }));
+    } else if (filterDeptMeta && snapshot?.states?.[stateName]) {
+      // Simulated district data for the filter dept
+      const stateKpis = snapshot.states[stateName].kpis ?? {};
+      distKpis = simulateDistrictKPIs(stateKpis, distList, filterDeptMeta);
+    } else if (!filterDept && snapshot?.states?.[stateName]) {
+      // Overall: simulate for health as proxy
+      const healthMeta = deptMetas.find(d => d.code === "health");
+      if (healthMeta) {
+        // Use health KPIs but apply overall weighting
+        const stateKpis = snapshot.states[stateName].kpis ?? {};
+        distKpis = simulateDistrictKPIs(stateKpis, distList, healthMeta);
+      }
+    }
+
+    if (!distKpis.length) {
+      // Fallback: use district list with placeholder rank
+      return distList.map((district, i) => ({ district, value: NaN, score: 50 }));
+    }
+
+    // Compute ranking score (0-100, 100=best) based on active KPI or composite
+    const kpiCode = filterKpiMeta?.code;
+    const kpiDir  = filterKpiMeta?.direction ?? "lower_is_better";
+    const vals    = distKpis.map(d => d.kpis?.[kpiCode ?? "imr"] ?? NaN).filter(Number.isFinite);
+    const vmin    = vals.length ? Math.min(...vals) : 0;
+    const vmax    = vals.length ? Math.max(...vals) : 1;
+
+    const rows = distKpis.map((d) => {
+      const v = kpiCode ? (d.kpis?.[kpiCode] ?? NaN) : NaN;
+      let score = 50;
+      if (Number.isFinite(v) && vmax !== vmin) {
+        const norm = (v - vmin) / (vmax - vmin) * 100;
+        score = kpiDir === "lower_is_better" ? 100 - norm : norm;
+      }
+      return { district: d.region, value: v, score };
+    });
+
+    // Sort best first (highest score first)
+    rows.sort((a, b) => b.score - a.score);
+    return rows;
+  }, [stateName, filterDept, filterDeptMeta, filterKpiMeta, snapshot, districtSnap.data, deptMetas]);
+
+  /* ── District detail data for DistrictDetailPanel ────────────────── */
+  const districtDeptData = useMemo(() => {
+    if (!districtName || !stateName) return [];
+    const distList = stateName === "Gujarat" ? GJ_DISTRICTS : TN_DISTRICTS;
+
+    return deptMetas.map((meta: any) => {
+      // State average KPIs for comparison
+      const stateSnap = allDeptSnaps[meta.code]?.states?.[stateName];
+      const stateKpis: Record<string, number> = stateSnap?.kpis ?? {};
+
+      // District KPIs
+      let distKpis: Record<string, number> = {};
+
+      if (meta.code === "health" && districtSnap.data?.districts?.[districtName]) {
+        distKpis = { ...districtSnap.data.districts[districtName].kpis } as Record<string, number>;
+      } else if (Object.keys(stateKpis).length > 0) {
+        // Simulate district values from state baseline
+        const simRows = simulateDistrictKPIs(stateKpis, distList, meta);
+        const row = simRows.find(r => r.region === districtName);
+        distKpis = row?.kpis ?? {};
+      }
+
+      return { code: meta.code, kpis: distKpis, stateKpis };
+    });
+  }, [districtName, stateName, deptMetas, allDeptSnaps, districtSnap.data]);
+
+  // Estimated district-level funding (state / number of districts)
+  const districtFunding = useMemo(() => {
+    if (!stateFund || !stateName) return undefined;
+    const numDist = (stateName === "Gujarat" ? GJ_DISTRICTS : TN_DISTRICTS).length;
+    return {
+      central:              stateFund.central / numDist,
+      central_released:     stateFund.central_released / numDist,
+      state:                stateFund.state / numDist,
+      state_released:       stateFund.state_released / numDist,
+      central_release_pct:  stateFund.central_release_pct,
+      state_release_pct:    stateFund.state_release_pct,
+    };
+  }, [stateFund, stateName]);
+
+  /* ── Navigation helpers ──────────────────────────────────────────── */
   const handleSelectState = (name: string) => {
     setStateName(name);
     setDistrictName(null);
     setView("state");
-    setRightMode("state");
-    if (!activeDept) setActiveDept("health");
   };
 
-  const handleSelectDept = (code: string) => {
-    setActiveDept(code);
-    setPrimaryKpi(deptMetas.find((d) => d.code === code)?.kpis?.[0]?.code ?? "");
-    if (stateName) setRightMode("dept");
+  const handleSelectDistrict = (name: string) => {
+    setDistrictName(name);
+    setView("district");
   };
 
-  const handleGoIndia = () => {
-    setView("india"); setStateName(null); setDistrictName(null);
-    setRightMode("none"); setActiveDept(null);
-  };
+  const handleGoIndia = () => { setView("india"); setStateName(null); setDistrictName(null); };
+  const handleGoState = () => { setView("state"); setDistrictName(null); };
 
-  const handleGoState = () => {
-    setView("state"); setDistrictName(null); setRightMode("state");
-  };
+  /* ── Map URL ─────────────────────────────────────────────────────── */
+  const geoUrl   = view === "india"
+    ? "/geo/india_states.simplified.geojson"
+    : (stateName === "Gujarat" ? "/geo/gj_districts.simplified.geojson" : "/geo/tn_districts.simplified.geojson");
+  const nameProp = view === "india" ? "NAME_1" : "NAME_2";
 
-  /* ── Geojson URLs ──────────────────────────────────────────────────── */
-  const geoUrl = view === "state"
-    ? (stateName === "Gujarat"
-        ? "/geo/gj_districts.simplified.geojson"
-        : "/geo/tn_districts.simplified.geojson")
-    : "/geo/india_states.simplified.geojson";
-  const nameProp = view === "state" ? "NAME_2" : "NAME_1";
-
-  /* ── Dept context for DeptDetailPanel ─────────────────────────────── */
-  const stateSnap = snapshot?.states?.[stateName!];
-  const nationalSnap = snapshot?.national;
-  const activeFunding = stateName && activeDept ? stateDeptFunding?.[activeDept] : null;
+  const accentColor = filterDept
+    ? (DEPT_REGISTRY.find(d => d.code === filterDept)?.accent ?? "#3B82F6")
+    : "#3B82F6";
 
   return (
     <div className="app-grid">
-      {/* ── Left sidebar ─────────────────────────────────────────────── */}
+      {/* Left sidebar */}
       <LeftSidebar
         view={view}
         stateName={stateName}
         districtName={districtName}
-        activeDept={activeDept}
+        filterDept={filterDept}
         connected={connected}
         onGoIndia={handleGoIndia}
         onGoState={handleGoState}
-        onSelectDept={handleSelectDept}
+        onFilterDept={setFilterDept}
         ticketCount={openTickets}
         onOpenTickets={() => setTickerOpen(true)}
       />
 
-      {/* ── Center: map + overlays ────────────────────────────────────── */}
+      {/* Center map */}
       <div className="relative h-screen overflow-hidden">
-        {/* Dept label badge — top center of map */}
-        {activeDept && dept && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full"
-               style={{ background: "rgba(255,255,255,0.92)", border: `1.5px solid ${DEPT_REGISTRY.find(d=>d.code===activeDept)?.accent}40`, boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}>
-            <span className="w-2 h-2 rounded-full" style={{ background: DEPT_REGISTRY.find(d=>d.code===activeDept)?.accent }} />
-            <span className="text-[12px] font-bold text-slate-700">{dept.name}</span>
-            {stateName && <><span className="text-slate-300 mx-1">›</span><span className="text-[12px] font-semibold text-slate-500">{stateName}</span></>}
-          </div>
-        )}
+        {/* Breadcrumb badge */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200"
+             style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+          <span className="text-[12px] font-bold text-slate-700">
+            {view === "india" ? "🇮🇳 All India"
+              : view === "state" ? `📍 ${stateName}`
+              : `📌 ${districtName}, ${stateName}`}
+          </span>
+          {filterDept && (
+            <>
+              <span className="text-slate-300">·</span>
+              <span className="text-[11px] font-semibold text-slate-500"
+                    style={{ color: accentColor }}>
+                {DEPT_REGISTRY.find(d => d.code === filterDept)?.name}
+              </span>
+            </>
+          )}
+        </div>
 
         <ICCCMapCanvas
           geojsonUrl={geoUrl}
           nameProp={nameProp}
-          selectedState={view === "state" ? stateName : null}
+          selectedState={view !== "india" ? stateName : null}
           selectedDistrict={districtName}
           onSelectState={handleSelectState}
-          onSelectDistrict={(name) => { setDistrictName(name); }}
-          showDistrictMarkers={view === "state"}
-          accentColor={DEPT_REGISTRY.find(d => d.code === activeDept)?.accent ?? "#3B82F6"}
+          onSelectDistrict={handleSelectDistrict}
+          showDistrictMarkers={view !== "india"}
+          accentColor={accentColor}
         />
 
         {/* Home stats strip */}
@@ -222,33 +272,35 @@ export default function App() {
         )}
       </div>
 
-      {/* ── Right slide-in panel ──────────────────────────────────────── */}
+      {/* Right slide-in panel */}
       <div className={`right-panel ${rightMode !== "none" ? "open" : ""}`}>
         {rightMode === "state" && stateName && (
-          <StateDeptPanel
+          <StateDistrictPanel
             stateName={stateName}
-            snapshot={allDeptSnaps}
-            funding={stateDeptFunding}
+            rows={districtRows}
+            filterDept={filterDept}
+            filterKpi={filterKpiMeta?.name ?? null}
+            filterKpiUnit={filterKpiMeta?.unit ?? ""}
             deptMetas={deptMetas}
-            onClose={() => setRightMode("none")}
-            onSelectDept={handleSelectDept}
-            activeDept={activeDept}
+            fundingState={stateFund}
+            onClose={() => setView("india")}
+            onSelectDistrict={handleSelectDistrict}
+            onChangeDeptFilter={setFilterDept}
+            selectedDistrict={districtName}
           />
         )}
-        {rightMode === "dept" && dept && (
-          <DeptDetailPanel
+        {rightMode === "district" && districtName && (
+          <DistrictDetailPanel
+            districtName={districtName}
             stateName={stateName!}
-            deptMeta={dept}
-            stateSnap={stateSnap}
-            nationalSnap={nationalSnap}
-            history={history.data ?? null}
-            fundingState={activeFunding}
-            onBack={() => setRightMode("state")}
+            deptData={districtDeptData}
+            deptMetas={deptMetas}
+            fundingDistrict={districtFunding}
+            onBack={handleGoState}
           />
         )}
       </div>
 
-      {/* ── Ticker inbox overlay ──────────────────────────────────────── */}
       {tickerOpen && <TickerInbox onClose={() => setTickerOpen(false)} />}
     </div>
   );
