@@ -19,6 +19,7 @@ import { ICCCMapCanvas } from "@/components/ICCCMapCanvas";
 import { HomeStatsStrip } from "@/components/HomeStatsStrip";
 import { StateDistrictPanel } from "@/components/StateDistrictPanel";
 import { DistrictDetailPanel } from "@/components/DistrictDetailPanel";
+import { DeptDetailPanel } from "@/components/DeptDetailPanel";
 import { TickerInbox } from "@/components/TickerSystem";
 
 /* ════════════════════════════════════════════════════════════════════════ */
@@ -43,11 +44,18 @@ export default function App() {
   const [view, setView]               = useState<ViewLevel>("india");
   const [stateName, setStateName]     = useState<string | null>(null);
   const [districtName, setDistrictName] = useState<string | null>(null);
-  const [filterDept, setFilterDept]   = useState<string | null>(null);  // left panel filter
-  const [tickerOpen, setTickerOpen]   = useState(false);
+  const [filterDept, setFilterDept]       = useState<string | null>(null);
+  const [districtDeptCode, setDistrictDeptCode] = useState<string | null>(null); // dept opened from district detail
+  const [tickerOpen, setTickerOpen]       = useState(false);
 
-  /* ── Right panel mode derived from view ──────────────────────────── */
-  const rightMode = view === "india" ? "none" : view === "state" ? "state" : "district";
+  /* ── Right panel mode ────────────────────────────────────────────── */
+  const rightMode = view === "india"
+    ? "none"
+    : view === "state"
+      ? "state"
+      : districtDeptCode
+        ? "district-dept"   // dept detail within a district
+        : "district";       // district overview (all depts)
 
   /* ── Data ─────────────────────────────────────────────────────────── */
   // SSE for the filter dept (or health as default for background data)
@@ -86,6 +94,19 @@ export default function App() {
     })();
     return () => { cancelled = true; };
   }, [districtName]);
+
+  // History for district dept detail — use real district history for Health, state history for others
+  const deptDetailHistory = useQuery({
+    queryKey: ["dept-detail-history", districtDeptCode, districtName, stateName],
+    queryFn: () => {
+      if (!districtDeptCode || !stateName) return null;
+      if (districtDeptCode === "health" && districtName) {
+        return api.districtHistory(stateName, districtName);
+      }
+      return api.deptStateHistory(districtDeptCode, stateName);
+    },
+    enabled: !!districtDeptCode && !!stateName && rightMode === "district-dept",
+  });
 
   // Ticket stats
   const ticketStats = useQuery({ queryKey: ["tickets-stats"], queryFn: api.ticketsStats, refetchInterval: 15_000 });
@@ -201,8 +222,9 @@ export default function App() {
     setView("district");
   };
 
-  const handleGoIndia = () => { setView("india"); setStateName(null); setDistrictName(null); };
-  const handleGoState = () => { setView("state"); setDistrictName(null); };
+  const handleGoIndia = () => { setView("india"); setStateName(null); setDistrictName(null); setDistrictDeptCode(null); };
+  const handleGoState = () => { setView("state"); setDistrictName(null); setDistrictDeptCode(null); };
+  const handleGoDistrict = () => setDistrictDeptCode(null); // back from dept detail → district overview
 
   /* ── Map URL ─────────────────────────────────────────────────────── */
   const geoUrl   = view === "india"
@@ -297,8 +319,31 @@ export default function App() {
             deptMetas={deptMetas}
             fundingDistrict={districtFunding}
             onBack={handleGoState}
+            onSelectDept={(code) => setDistrictDeptCode(code)}
           />
         )}
+
+        {rightMode === "district-dept" && districtDeptCode && districtName && (() => {
+          // Build the district-level snapshot for the selected dept
+          const deptSnap  = allDeptSnaps[districtDeptCode];
+          // For Health use real district KPIs; for others use simulated from deptData
+          const distKpis = districtDeptData.find(d => d.code === districtDeptCode)?.kpis ?? {};
+          const distState = districtDeptData.find(d => d.code === districtDeptCode)?.stateKpis ?? {};
+          const districtLikeSnap = { kpis: distKpis, schemes: districtSnap.data?.districts?.[districtName]?.schemes ?? deptSnap?.states?.[stateName!]?.schemes };
+          const stateAsBaseline  = { kpis: distState };
+          const deptMeta = deptMetas.find((d: any) => d.code === districtDeptCode);
+          return (
+            <DeptDetailPanel
+              stateName={`${districtName} · ${stateName}`}
+              deptMeta={deptMeta}
+              stateSnap={districtLikeSnap}
+              nationalSnap={stateAsBaseline}
+              history={deptDetailHistory.data ?? null}
+              fundingState={districtFunding}
+              onBack={handleGoDistrict}
+            />
+          );
+        })()}
       </div>
 
       {tickerOpen && <TickerInbox onClose={() => setTickerOpen(false)} />}
