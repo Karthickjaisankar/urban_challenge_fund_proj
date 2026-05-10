@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useLiveTick } from "@/hooks/useLiveTick";
+// useLiveTick removed — values update monthly, REST snapshots are sufficient
 import { DEPT_REGISTRY, STATE_CAPITALS, GEOJSON_TO_BACKEND } from "@/lib/constants";
 import { computeAllScores, computeScoreWithBreakdown, scoreGrade } from "@/lib/scoring";
 import { TN_DISTRICTS, GJ_DISTRICTS, simulateDistrictKPIs } from "@/lib/simulateDistricts";
@@ -22,6 +22,8 @@ import { StateDistrictPanel } from "@/components/StateDistrictPanel";
 import { DistrictDetailPanel } from "@/components/DistrictDetailPanel";
 import { DeptDetailPanel } from "@/components/DeptDetailPanel";
 import { TickerInbox } from "@/components/TickerSystem";
+import { TourismLandmarkOverlay } from "@/components/TourismLandmarkOverlay";
+import { TN_LANDMARKS, GJ_LANDMARKS } from "@/lib/tourismLandmarks";
 
 /* ════════════════════════════════════════════════════════════════════════ */
 
@@ -59,17 +61,25 @@ export default function App() {
         : "district";       // district overview (all depts)
 
   /* ── Data ─────────────────────────────────────────────────────────── */
-  // SSE for the filter dept (or health as default for background data)
-  const sseCode = filterDept ?? "health";
-  const { snapshot: sseSnap, connected } = useLiveTick(sseCode);
-  const restSnap = useQuery({ queryKey: ["rest-snap", sseCode], queryFn: () => api.deptSnapshot(sseCode), staleTime: 0 });
-  const snapshot = sseSnap ?? restSnap.data ?? null;
+  // Static REST snapshot — KPIs update monthly in practice, SSE not needed.
+  // 15-min staleTime keeps pages fresh across navigation without hammering the API.
+  const deptCode = filterDept ?? "health";
+  const deptSnapQuery = useQuery({
+    queryKey: ["dept-snap", deptCode],
+    queryFn:  () => api.deptSnapshot(deptCode),
+    staleTime: 15 * 60 * 1000,
+    gcTime:   30 * 60 * 1000,
+  });
+  const snapshot  = deptSnapQuery.data ?? null;
+  const connected = !deptSnapQuery.isLoading && !!snapshot;
 
   // Per-dept funding for the selected state
+  // Funding for the currently active dept (or the dept open in detail view)
+  const fundingDeptCode = districtDeptCode ?? filterDept ?? "health";
   const stateFundingQuery = useQuery({
-    queryKey: ["funding", filterDept ?? "health"],
-    queryFn: () => api.deptFunding(filterDept ?? "health"),
-    staleTime: 60_000,
+    queryKey: ["funding", fundingDeptCode],
+    queryFn: () => api.deptFunding(fundingDeptCode),
+    staleTime: 15 * 60 * 1000,
   });
   const stateFund = stateName ? stateFundingQuery.data?.per_state?.[stateName] : null;
 
@@ -388,6 +398,19 @@ export default function App() {
           scores={Object.keys(mapScores).length > 0 ? mapScores : undefined}
         />
 
+        {/* Tourism landmark image overlay */}
+        {filterDept === "tourism" && districtName && stateName && (() => {
+          const landmarks = stateName === "Gujarat" ? GJ_LANDMARKS : TN_LANDMARKS;
+          const landmark = landmarks[districtName];
+          return landmark ? (
+            <TourismLandmarkOverlay
+              landmark={landmark}
+              districtName={districtName}
+              onClose={() => setDistrictName(null)}
+            />
+          ) : null;
+        })()}
+
         {/* Home stats strip */}
         {view === "india" && snapshot && (
           <HomeStatsStrip
@@ -438,7 +461,14 @@ export default function App() {
           // For Health use real district KPIs; for others use simulated from deptData
           const distKpis = districtDeptData.find(d => d.code === districtDeptCode)?.kpis ?? {};
           const distState = districtDeptData.find(d => d.code === districtDeptCode)?.stateKpis ?? {};
-          const districtLikeSnap = { kpis: distKpis, schemes: districtSnap.data?.districts?.[districtName]?.schemes ?? deptSnap?.states?.[stateName!]?.schemes };
+          // Use the ACTIVE DEPT's state-level schemes (not Health district schemes).
+          // districtSnap only has Health schemes; for Tourism/Education/etc. we must
+          // pull from the dept-specific snapshot.
+          const districtLikeSnap = {
+            kpis: distKpis,
+            schemes: deptSnap?.states?.[stateName!]?.schemes    // dept-specific first
+              ?? districtSnap.data?.districts?.[districtName]?.schemes, // health fallback
+          };
           const stateAsBaseline  = { kpis: distState };
           const deptMeta = deptMetas.find((d: any) => d.code === districtDeptCode);
           return (

@@ -80,10 +80,10 @@ STATE_KPI_BASELINES: dict[str, tuple[float, float, float]] = {
 }
 
 STATE_FUNDING: dict[str, dict[str, float]] = {
-    s: {"central": round(120 + bl.state_population_m(s) * 5.5, 1),
-        "central_released": round((120 + bl.state_population_m(s) * 5.5) * 0.52, 1),
-        "state": round(80 + bl.state_population_m(s) * 9, 1),
-        "state_released": round((80 + bl.state_population_m(s) * 9) * 0.48, 1)}
+    s: {"central": round(850 + bl.state_population_m(s) * 15.5, 1),
+        "central_released": round((850 + bl.state_population_m(s) * 15.5) * 0.54, 1),
+        "state": round(1200 + bl.state_population_m(s) * 28, 1),
+        "state_released": round((1200 + bl.state_population_m(s) * 28) * 0.60, 1)}
     for s in STATE_KPI_BASELINES
 }
 
