@@ -19,13 +19,14 @@ class DeptModule(Protocol):
     def detect_anomalies(self) -> list[dict]: ...
 
 
-from . import education, wcd, revenue, disaster, tourism, health  # noqa: E402
+from . import education, wcd, revenue, disaster, tourism, health, energy  # noqa: E402
 
 REGISTRY: dict[str, "DeptModule"] = {
     "health":    health,
     "education": education,
     "wcd":       wcd,
     "revenue":   revenue,
+    "energy":    energy,
     "disaster":  disaster,
     "tourism":   tourism,
 }

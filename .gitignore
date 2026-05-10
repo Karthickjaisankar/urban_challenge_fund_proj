@@ -15,5 +15,10 @@ data/geo/tn_districts.geojson
 # macOS
 .DS_Store
 
-# Skills / local tooling (not part of the app)
+# Claude Code local settings and skills
 .calude/
+.claude/
+
+# Source documents (not part of deployed app)
+*.pdf
+*.docx

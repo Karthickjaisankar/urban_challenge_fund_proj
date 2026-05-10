@@ -2,210 +2,146 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-  --paper: #fdfbf6;
-  --ink:   #171612;
-  --ink-soft: #3a382f;
-  --rule: rgba(15, 23, 42, 0.08);
-  --rule-strong: rgba(15, 23, 42, 0.16);
-  --saffron: #ff7722;
-  --ashoka:  #0c4ca3;
-  --emerald: #128807;
-  --magenta: #c4368e;
-  --ruby:    #b81d24;
-  --gold:    #d68b00;
-}
+/* ── Base reset ────────────────────────────────────────────────────────── */
+:root { color-scheme: dark; }
+html, body, #root { height: 100%; overflow: hidden; }
 
-html, body, #root { height: 100%; }
-body {
-  background: var(--paper);
-  color: var(--ink);
-}
-
-/* numerical figures */
-.fig {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
-.display {
-  font-family: "Fraunces", "Instrument Serif", serif;
-  letter-spacing: -0.02em;
-  font-weight: 900;
-}
-
-/* Hero number — used by KPI tiles for the focal value */
-.hero-fig {
-  font-family: "Fraunces", "Instrument Serif", serif;
-  font-variant-numeric: tabular-nums;
-  font-weight: 900;
-  font-size: clamp(40px, 5vw, 64px);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-}
-
-/* Card — paper-like with elevation, supports colored top accent via --accent */
-.card {
-  background: #ffffff;
-  border: 1px solid var(--rule);
-  border-radius: 16px;
-  box-shadow: 0 2px 0 rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.07), 0 18px 42px -22px rgba(15,23,42,0.12);
-  position: relative;
+/* ── 3-panel grid ──────────────────────────────────────────────────────── */
+.app-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: 100vh;
+  height: 100vh;
   overflow: hidden;
 }
-.card-accent {
-  position: relative;
-}
-.card-accent::before {
-  content: "";
-  position: absolute; left: 0; right: 0; top: 0; height: 4px;
-  background: var(--accent, var(--ashoka));
-  border-radius: 16px 16px 0 0;
-}
-.card-tinted {
-  background: linear-gradient(180deg, var(--tint, rgba(12,76,163,0.04)) 0%, #ffffff 30%);
-  border: 1px solid var(--rule);
-  border-radius: 16px;
-}
 
-/* Section banner — bold colored bar that frames each section */
-.section-banner {
-  display: flex; align-items: center; justify-content: space-between;
-  background: linear-gradient(90deg, var(--banner-from, #0c4ca3) 0%, var(--banner-to, #0c4ca3) 100%);
-  color: #ffffff;
-  padding: 10px 16px;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 14px -4px var(--banner-shadow, rgba(12, 76, 163, 0.35));
-}
-.section-banner-title {
-  font-family: "Manrope", sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  display: flex; align-items: center; gap: 8px;
-}
-.section-banner-meta {
+/* ── Typography helpers ────────────────────────────────────────────────── */
+.fig {
   font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
-  font-weight: 500;
-  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.display {
+  font-family: "Fraunces", serif;
+  font-weight: 900;
+  letter-spacing: -0.025em;
 }
 
-/* Legacy section-label still used in popups */
-.section-label {
-  display: flex; align-items: center; gap: 0.625rem;
+/* ── Card surface ──────────────────────────────────────────────────────── */
+.card-dark {
+  background: rgba(22, 32, 51, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Dept accent glow helper (set --dept-color on element) ─────────────── */
+.dept-glow {
+  box-shadow: 0 0 0 1px var(--dept-color, #fff), 0 0 24px -6px var(--dept-color, transparent);
+}
+
+/* ── Sidebar nav item ──────────────────────────────────────────────────── */
+.nav-item {
+  @apply flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all cursor-pointer;
+  @apply text-[13px] font-semibold text-slate-300;
+}
+.nav-item:hover  { background: rgba(255,255,255,0.05); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.09); color: #fff; }
+
+/* ── ICCC Leaflet markers ──────────────────────────────────────────────── */
+.iccc-marker { border: none !important; background: transparent !important; }
+.iccc-nodal-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #FFD700;
+  border: 2.5px solid rgba(255,255,255,0.7);
+  animation: pulseRingCSS 2.2s ease-in-out infinite;
+}
+.iccc-sub-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #4A9EFF;
+  border: 2px solid rgba(255,255,255,0.5);
+  animation: pulseBlueCSS 2.8s ease-in-out infinite;
+}
+
+@keyframes pulseRingCSS {
+  0%   { box-shadow: 0 0 0 0 rgba(255,215,0,0.65); }
+  70%  { box-shadow: 0 0 0 14px rgba(255,215,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+}
+@keyframes pulseBlueCSS {
+  0%   { box-shadow: 0 0 0 0 rgba(74,158,255,0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(74,158,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(74,158,255,0); }
+}
+
+/* ── Leaflet dark overrides ────────────────────────────────────────────── */
+.leaflet-container {
+  background: #0D1821 !important;
   font-family: "Manrope", sans-serif;
-  font-weight: 700;
+  outline: none;
+}
+.leaflet-control-attribution {
+  background: rgba(13,24,33,0.8) !important;
+  color: rgba(255,255,255,0.3) !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a { color: rgba(74,158,255,0.6) !important; }
+
+/* State/district hover tooltip on map */
+.iccc-map-tip {
+  background: rgba(13,24,33,0.95) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  border-radius: 8px !important;
+  color: #E8EDF5 !important;
+  font-family: "Manrope", sans-serif;
   font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+  font-weight: 600;
+  padding: 6px 10px !important;
+  box-shadow: 0 8px 24px -8px rgba(0,0,0,0.6) !important;
 }
-.section-label::before {
-  content: "";
-  display: inline-block;
-  width: 16px;  height: 2px;
-  background: currentColor;
-  border-radius: 1px;
-  opacity: 0.65;
-}
+.iccc-map-tip::before { display: none; }
 
-/* tricolor strip */
-.tricolor-strip {
-  height: 3px;
-  background: linear-gradient(90deg, #ff7722 0% 33.3%, #ffffff 33.3% 66.6%, #128807 66.6% 100%);
+/* ── Right panel ───────────────────────────────────────────────────────── */
+.right-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 420px;
+  z-index: 500;
+  transform: translateX(100%);
+  transition: transform 330ms cubic-bezier(.2,.9,.2,1);
+  overflow-y: auto;
+  background: rgba(9,18,29,0.97);
+  border-left: 1px solid rgba(255,255,255,0.09);
+  backdrop-filter: blur(16px);
 }
+.right-panel.open { transform: translateX(0); }
 
-/* Pulse */
+/* ── Scrollbar (dark, thin) ────────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 2px; }
+
+/* ── Pulse animation (loading indicator) ──────────────────────────────── */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(1.5); }
+  50% { opacity: 0.5; transform: scale(1.4); }
 }
 .pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
 
-/* Shimmer for skeletons */
-@keyframes shimmer { 0% { background-position: -160px 0; } 100% { background-position: 160px 0; } }
+/* ── Skeleton shimmer ──────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
 .skeleton {
-  background: linear-gradient(90deg, rgba(15,23,42,0.04) 0px, rgba(15,23,42,0.10) 40px, rgba(15,23,42,0.04) 80px);
-  background-size: 160px 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.10) 40px,
+    rgba(255,255,255,0.04) 80px
+  );
+  background-size: 200px 100%;
   animation: shimmer 1.4s linear infinite;
   border-radius: 6px;
 }
-
-/* Counter flash */
-@keyframes counter-flash {
-  0% { color: var(--saffron); }
-  100% { color: inherit; }
-}
-.counter-flash { animation: counter-flash 600ms ease-out; }
-
-/* Floating overlay panel pop animation */
-@keyframes panel-pop {
-  0%   { opacity: 0; transform: translateY(-6px) scale(0.96); }
-  60%  { opacity: 1; transform: translateY(0) scale(1.02); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Leaflet — light editorial overrides */
-.leaflet-container {
-  background: transparent;
-  outline: none;
-  font-family: "Manrope", sans-serif;
-}
-.leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.85) !important;
-  color: rgba(0, 0, 0, 0.4) !important;
-  font-size: 9px !important;
-  border: 1px solid var(--rule);
-}
-.leaflet-control-attribution a { color: var(--ashoka) !important; }
-
-/* Permanent region labels — bolder and more readable on colored basemap */
-.region-label {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  font-family: "Manrope", sans-serif;
-  font-weight: 800;
-  font-size: 11px;
-  color: rgba(15, 23, 42, 0.92);
-  text-shadow:
-     0 0 4px #ffffff,
-     0 1px 0 #ffffff, 0 -1px 0 #ffffff,
-     1px 0 0 #ffffff, -1px 0 0 #ffffff,
-     1px 1px 0 #ffffff, -1px -1px 0 #ffffff,
-     1px -1px 0 #ffffff, -1px 1px 0 #ffffff;
-  pointer-events: none;
-  white-space: nowrap;
-  padding: 0 !important;
-  letter-spacing: 0;
-}
-.region-label.region-label--district {
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(15, 23, 42, 0.85);
-}
-.region-label.region-label--small { display: none; }
-.region-label.region-label--selected {
-  color: var(--ashoka);
-  font-weight: 900;
-  font-size: 13px;
-}
-
-/* Tooltip-on-hover styling */
-.iccc-tip {
-  background: #ffffff !important;
-  color: var(--ink) !important;
-  border: 1px solid var(--rule-strong) !important;
-  border-radius: 8px !important;
-  font-family: "Manrope", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 6px 9px !important;
-  box-shadow: 0 8px 24px -12px rgba(0,0,0,0.2) !important;
-}
-.iccc-tip::before { display: none; }
