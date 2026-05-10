@@ -13,7 +13,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLiveTick } from "@/hooks/useLiveTick";
 import { DEPT_REGISTRY, STATE_CAPITALS } from "@/lib/constants";
-import { computeAllScores, scoreGrade } from "@/lib/scoring";
+import { computeAllScores, computeScoreWithBreakdown, scoreGrade } from "@/lib/scoring";
 import { TN_DISTRICTS, GJ_DISTRICTS, simulateDistrictKPIs } from "@/lib/simulateDistricts";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { ICCCMapCanvas } from "@/components/ICCCMapCanvas";
@@ -248,6 +248,33 @@ export default function App() {
     };
   }, [stateFund, stateName]);
 
+  /* ── Score breakdown for the focused region (state panel header) ── */
+  const focusedScoreBreakdown = useMemo(() => {
+    if (!activeScoringMeta?.kpis || !snapshot?.states) return null;
+    const focusRegion = view === "district" ? districtName : view === "state" ? stateName : null;
+    if (!focusRegion) return null;
+
+    // Find the KPI values for the focused region
+    let regionKpis: Record<string, number> = {};
+    if (view === "district" && activeScoringMeta.code === "health" && districtSnap.data?.districts?.[focusRegion]) {
+      regionKpis = { ...districtSnap.data.districts[focusRegion].kpis } as Record<string, number>;
+    } else {
+      regionKpis = snapshot.states[focusRegion]?.kpis ?? {};
+    }
+
+    // Compute global min/max from all state KPIs in snapshot
+    const allKpis: Record<string, Record<string, number>> = {};
+    Object.entries(snapshot.states).forEach(([s, snap]: any) => { allKpis[s] = snap.kpis ?? {}; });
+    const gMin: Record<string, number> = {};
+    const gMax: Record<string, number> = {};
+    activeScoringMeta.kpis.forEach((k: any) => {
+      const vals = Object.values(allKpis).map((r) => r?.[k.code]).filter(Number.isFinite) as number[];
+      if (vals.length) { gMin[k.code] = Math.min(...vals); gMax[k.code] = Math.max(...vals); }
+    });
+
+    return computeScoreWithBreakdown(regionKpis, gMin, gMax, activeScoringMeta.kpis);
+  }, [activeScoringMeta, snapshot, districtSnap.data, view, stateName, districtName]);
+
   /* ── Navigation helpers ──────────────────────────────────────────── */
   const handleSelectState = (name: string) => {
     setStateName(name);
@@ -365,6 +392,8 @@ export default function App() {
             onChangeDeptFilter={setFilterDept}
             selectedDistrict={districtName}
             scores={mapScores}
+            scoreBreakdown={focusedScoreBreakdown ?? undefined}
+            scoreDeptName={activeScoringMeta?.name ?? "Health"}
           />
         )}
         {rightMode === "district" && districtName && (

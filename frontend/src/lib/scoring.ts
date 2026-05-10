@@ -76,6 +76,54 @@ export function computeAllScores(
   return out;
 }
 
+export interface KpiBreakdown {
+  code: string;
+  name: string;
+  unit: string;
+  direction: "lower_is_better" | "higher_is_better";
+  stateValue: number;
+  nationalMin: number;
+  nationalMax: number;
+  kpiScore: number;   // 0-100 normalized
+  accent?: string;
+}
+
+/**
+ * Returns both the composite score AND the per-KPI breakdown for display.
+ */
+export function computeScoreWithBreakdown(
+  kpis: Record<string, number>,
+  globalMin: Record<string, number>,
+  globalMax: Record<string, number>,
+  kpiMetas: (KpiMeta & { name?: string; unit?: string; accent?: string })[],
+): { score: number; breakdown: KpiBreakdown[] } {
+  const breakdown: KpiBreakdown[] = [];
+  const scores: number[] = [];
+  const weights: number[] = [];
+
+  kpiMetas.forEach((k) => {
+    const v   = kpis[k.code];
+    const min = globalMin[k.code];
+    const max = globalMax[k.code];
+    if (!Number.isFinite(v) || !Number.isFinite(min) || !Number.isFinite(max)) return;
+    const range = max - min;
+    const norm  = range === 0 ? 50 : (v - min) / range * 100;
+    const kpiScore = Math.round(k.direction === "lower_is_better" ? 100 - norm : norm);
+    breakdown.push({
+      code: k.code, name: k.name ?? k.code, unit: k.unit ?? "",
+      direction: k.direction, stateValue: v,
+      nationalMin: min, nationalMax: max, kpiScore, accent: k.accent,
+    });
+    scores.push(kpiScore);
+    weights.push(k.weight ?? 1);
+  });
+
+  if (!scores.length) return { score: 50, breakdown };
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  const weightedSum = scores.reduce((sum, s, i) => sum + s * weights[i], 0);
+  return { score: Math.round(weightedSum / totalWeight), breakdown };
+}
+
 /** Grade label for a score */
 export function scoreGrade(score: number): { label: string; color: string; bg: string } {
   if (score >= 80) return { label: "Excellent", color: "#15803D", bg: "#F0FDF4" };

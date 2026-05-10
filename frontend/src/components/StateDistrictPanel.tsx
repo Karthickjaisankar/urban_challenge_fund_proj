@@ -7,6 +7,8 @@
 import { X, ChevronRight, Filter } from "lucide-react";
 import { DEPT_REGISTRY } from "@/lib/constants";
 import { scoreGrade } from "@/lib/scoring";
+import { ScoreBreakdownCard } from "@/components/ScoreBreakdownCard";
+import type { KpiBreakdown } from "@/lib/scoring";
 
 interface RankRow {
   district: string;
@@ -27,13 +29,15 @@ interface StateDistrictPanelProps {
   onChangeDeptFilter: (code: string | null) => void;
   selectedDistrict?: string | null;
   scores?: Record<string, number>;
+  scoreBreakdown?: { score: number; breakdown: KpiBreakdown[] };
+  scoreDeptName?: string;
 }
 
 export function StateDistrictPanel({
   stateName, rows, filterDept, filterKpi, filterKpiUnit,
   deptMetas, fundingState,
   onClose, onSelectDistrict, onChangeDeptFilter, selectedDistrict,
-  scores = {},
+  scores = {}, scoreBreakdown, scoreDeptName = "Health",
 }: StateDistrictPanelProps) {
   const activeConf = DEPT_REGISTRY.find(d => d.code === filterDept);
 
@@ -73,6 +77,19 @@ export function StateDistrictPanel({
           </div>
         )}
       </div>
+
+      {/* Score breakdown for this state */}
+      {scoreBreakdown && scoreBreakdown.breakdown.length > 0 && (
+        <div className="px-4 pt-3 pb-1 bg-white border-b border-slate-100">
+          <ScoreBreakdownCard
+            deptName={scoreDeptName}
+            score={scoreBreakdown.score}
+            breakdown={scoreBreakdown.breakdown}
+            scopeLabel={stateName}
+            comparedTo="All India"
+          />
+        </div>
+      )}
 
       {/* Dept filter pills */}
       <div className="px-4 py-2.5 bg-white border-b border-slate-200 shrink-0">
