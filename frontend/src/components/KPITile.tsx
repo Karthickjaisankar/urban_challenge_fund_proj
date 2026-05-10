@@ -5,7 +5,7 @@ interface KPITileProps {
   label: string;
   unit: string;
   value: number;
-  baseline?: number;
+  baseline?: number;          // benchmark (national avg for states, state avg for districts)
   baselineLabel?: string;
   direction: "lower_is_better" | "higher_is_better";
   accent?: string;
@@ -13,11 +13,7 @@ interface KPITileProps {
 }
 
 /**
- * Adaptive number format: avoids overflow for large values (e.g. Tourism domestic
- * footfall 3985 lakh, or Revenue TAT 5.8 days).
- * — ≥10k  → no decimal (e.g. "3,985")
- * — ≥100  → 1 decimal (e.g. "100.7")
- * — <100  → 1 decimal (e.g. "26.0")
+ * Adaptive number format: avoids overflow for large values
  */
 function fmtVal(v: number): string {
   if (!Number.isFinite(v)) return "—";
@@ -27,28 +23,56 @@ function fmtVal(v: number): string {
   return v.toFixed(1);
 }
 
-/**
- * Choose a CSS font-size class based on the *rendered string length* (including
- * commas, decimals, and unit suffixes). JetBrains Mono at 48px (text-5xl) is
- * ~28px per character. A tile that's ~150px wide can hold ~5 chars at text-5xl
- * but ~7 chars at text-4xl (36px ≈ 21px/char).
- */
 function figSizeClass(v: number, size: "lg" | "md" | "sm"): string {
-  const len = fmtVal(v).length; // full formatted string, commas included
+  const len = fmtVal(v).length;
   if (size === "sm") return "text-3xl";
   if (size === "lg") {
     if (len >= 8) return "text-4xl";
     if (len >= 6) return "text-5xl";
     return "text-6xl";
   }
-  // md (default) — tiles are roughly 150-180px wide in the right-rail grid
   if (len >= 9) return "text-2xl";
   if (len >= 7) return "text-3xl";
-  if (len >= 5) return "text-4xl";   // e.g. "3,985" (5 chars) → fits at text-4xl
-  return "text-5xl";                 // e.g. "26.0"  (4 chars) → text-5xl looks great
+  if (len >= 5) return "text-4xl";
+  return "text-5xl";
 }
 
-export function KPITile({ label, unit, value, baseline, baselineLabel = "vs national", direction, accent = "#0c4ca3", size = "md" }: KPITileProps) {
+/** Corner glow based on value vs benchmark.
+ *  Returns a CSS box-shadow string — glows are stronger at card corners
+ *  because of the border-radius geometry.
+ *  Tolerance: ±10% of benchmark = amber; outside = green/red.
+ */
+function cornerGlow(
+  value: number,
+  baseline: number | undefined,
+  direction: "lower_is_better" | "higher_is_better",
+): string | undefined {
+  if (baseline == null || !Number.isFinite(value) || !Number.isFinite(baseline) || baseline === 0) return undefined;
+
+  const relDiff = (value - baseline) / Math.abs(baseline); // negative = lower than benchmark
+  const withinTolerance = Math.abs(relDiff) <= 0.10;
+
+  let r: number, g: number, b: number;
+
+  if (withinTolerance) {
+    // Amber — near average
+    [r, g, b] = [217, 119, 6];
+  } else {
+    const valueBetterThanBenchmark =
+      direction === "lower_is_better" ? relDiff < 0 : relDiff > 0;
+    [r, g, b] = valueBetterThanBenchmark ? [22, 163, 74] : [220, 38, 38];
+  }
+
+  // Two-layer shadow: thin border ring + outer glow
+  // The rounded corners cause the glow to pool at corners — this is intentional.
+  return [
+    `0 0 0 1.5px rgba(${r},${g},${b},0.40)`,   // inner ring
+    `0 0 18px 4px rgba(${r},${g},${b},0.22)`,   // outer glow
+    `inset 0 0 8px 0 rgba(${r},${g},${b},0.06)`, // subtle inner blush
+  ].join(", ");
+}
+
+export function KPITile({ label, unit, value, baseline, baselineLabel = "vs avg", direction, accent = "#0c4ca3", size = "md" }: KPITileProps) {
   const figRef = useRef<HTMLSpanElement>(null);
   const last = useRef(value);
   useEffect(() => {
@@ -67,17 +91,21 @@ export function KPITile({ label, unit, value, baseline, baselineLabel = "vs nati
     : (direction === "lower_is_better" ? TrendingDown : TrendingUp);
 
   const tint = accent + "14";
+  const glow = cornerGlow(value, baseline, direction);
 
   return (
     <div
-      className={`card card-accent ${size === "lg" ? "py-6" : size === "sm" ? "py-3" : "py-5"} px-4`}
-      style={{ "--accent": accent, background: `linear-gradient(180deg, ${tint} 0%, #ffffff 75%)` } as any}
+      className={`card card-accent ${size === "lg" ? "py-6" : size === "sm" ? "py-3" : "py-5"} px-4 transition-shadow`}
+      style={{
+        "--accent": accent,
+        background: `linear-gradient(180deg, ${tint} 0%, #ffffff 75%)`,
+        ...(glow ? { boxShadow: glow } : {}),
+      } as any}
     >
       <div className="flex items-center justify-between gap-1 mb-2 flex-wrap">
         <div className="text-[12px] uppercase tracking-[0.16em] font-bold leading-tight" style={{ color: accent }}>{label}</div>
         <div className="text-[10px] text-ink2-400 font-mono leading-none">{unit}</div>
       </div>
-      {/* Clipped container prevents overflow */}
       <div className="overflow-hidden min-w-0">
         <span
           ref={figRef}

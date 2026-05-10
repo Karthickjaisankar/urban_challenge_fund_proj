@@ -4,6 +4,29 @@
  */
 import { ArrowLeft, Heart, BookOpen, Users, Landmark, Zap, ShieldAlert, Compass, LayoutGrid, TrendingDown, TrendingUp } from "lucide-react";
 import { computeScore, scoreGrade } from "@/lib/scoring";
+
+/** Corner glow matching KPITile logic — used on the dept card itself. */
+function deptCardGlow(score: number | null): string | undefined {
+  if (score == null) return undefined;
+  if (score >= 65) return "0 0 0 1.5px rgba(22,163,74,0.38), 0 0 16px 4px rgba(22,163,74,0.18)";
+  if (score >= 35) return "0 0 0 1.5px rgba(217,119,6,0.38), 0 0 16px 4px rgba(217,119,6,0.18)";
+  return                 "0 0 0 1.5px rgba(220,38,38,0.38),  0 0 16px 4px rgba(220,38,38,0.18)";
+}
+
+/** Per-KPI mini-cell glow — compares district value vs state average. */
+function kpiCellGlow(distVal: number, stateVal: number, direction: string): string | undefined {
+  if (!Number.isFinite(distVal) || !Number.isFinite(stateVal) || stateVal === 0) return undefined;
+  const rel = (distVal - stateVal) / Math.abs(stateVal);
+  const within = Math.abs(rel) <= 0.10;
+  let r: number, g: number, b: number;
+  if (within) {
+    [r, g, b] = [217, 119, 6];
+  } else {
+    const better = direction === "lower_is_better" ? rel < 0 : rel > 0;
+    [r, g, b] = better ? [22, 163, 74] : [220, 38, 38];
+  }
+  return `0 0 0 1px rgba(${r},${g},${b},0.35), 0 0 10px 2px rgba(${r},${g},${b},0.18)`;
+}
 import { DEPT_REGISTRY } from "@/lib/constants";
 
 const ICONS: Record<string, any> = {
@@ -75,12 +98,26 @@ export function DistrictDetailPanel({
           const accent = conf?.accent ?? "#3B82F6";
           const Icon = ICONS[meta.icon] ?? LayoutGrid;
 
+          // Compute dept score here so it can be used in the card's box-shadow
+          const kpiMetasList = meta.kpis ?? [];
+          const distKpisForGlow = deptEntry?.kpis ?? {};
+          const stateKpisForGlow = deptEntry?.stateKpis ?? {};
+          const gMin: Record<string, number> = {};
+          const gMax: Record<string, number> = {};
+          kpiMetasList.forEach((k: any) => {
+            const sv = stateKpisForGlow[k.code];
+            if (Number.isFinite(sv) && sv !== 0) { gMin[k.code] = sv * 0.7; gMax[k.code] = sv * 1.3; }
+          });
+          const deptScore = Object.keys(gMin).length
+            ? computeScore(distKpisForGlow, gMin, gMax, kpiMetasList)
+            : null;
+
           return (
             <button
               key={meta.code}
               onClick={() => onSelectDept?.(meta.code)}
               className="w-full text-left rounded-xl overflow-hidden bg-white border border-slate-100 transition hover:shadow-md"
-              style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderTop: `3px solid ${accent}` }}
+              style={{ boxShadow: deptCardGlow(deptScore) ?? "0 1px 4px rgba(0,0,0,0.06)", borderTop: `3px solid ${accent}` }}
             >
               {/* Dept name row + index score */}
               {(() => {
@@ -136,8 +173,10 @@ export function DistrictDetailPanel({
                   const DirIcon  = better == null ? null
                     : (k.direction === "lower_is_better" ? TrendingDown : TrendingUp);
 
+                  const cellGlow = kpiCellGlow(distVal ?? NaN, stateVal ?? NaN, k.direction);
                   return (
-                    <div key={k.code} className="px-3 py-2.5 text-center">
+                    <div key={k.code} className="px-3 py-2.5 text-center rounded-lg transition-shadow"
+                         style={cellGlow ? { boxShadow: cellGlow } : {}}>
                       <div className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">{k.short}</div>
                       <div className="fig text-[18px] font-black" style={{ color: Number.isFinite(distVal) ? (k.accent ?? accent) : "#CBD5E0" }}>
                         {Number.isFinite(distVal) ? distVal!.toFixed(1) : "—"}
