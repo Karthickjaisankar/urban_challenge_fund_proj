@@ -13,10 +13,10 @@ import { STATE_CAPITALS } from "@/lib/constants";
 
 const INDIA_BOUNDS: L.LatLngBoundsLiteral = [[6.5, 68.0], [37.0, 97.5]];
 
-// Neutral state fill — no data encoding, purely navigational
+// Neutral fill for unselected regions; vibrant highlight for the selected one
 function stateColor(isSelected: boolean, isHover: boolean, accentColor: string): { fill: string; fillOpacity: number; weight: number; color: string } {
-  if (isSelected) return { fill: accentColor, fillOpacity: 0.18, weight: 2.5, color: accentColor };
-  if (isHover)    return { fill: "#94A3B8",   fillOpacity: 0.30, weight: 1.2, color: "#64748B" };
+  if (isSelected) return { fill: accentColor, fillOpacity: 0.72, weight: 3.0, color: accentColor };
+  if (isHover)    return { fill: accentColor, fillOpacity: 0.28, weight: 1.5, color: accentColor };
   return               { fill: "#CBD5E0",     fillOpacity: 0.22, weight: 0.8, color: "#94A3B8" };
 }
 
@@ -229,21 +229,38 @@ export function ICCCMapCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDistrictMarkers, selectedState]);
 
-  // Fly to selected state
-  const lastSelRef = useRef<string | null | undefined>(undefined);
+  // Fly to selected state (on state map) or selected district (on district map)
+  const lastStateRef    = useRef<string | null | undefined>(undefined);
+  const lastDistrictRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    const m = mapRef.current;
+    const m   = mapRef.current;
     const geo = layerRef.current;
-    if (!m || !geo || lastSelRef.current === selectedState) return;
-    lastSelRef.current = selectedState;
-    if (!selectedState) return;
-    geo.eachLayer((l: any) => {
-      if (l.feature?.properties?.[nameProp] === selectedState) {
-        const b = l.getBounds?.();
-        if (b && b.isValid()) m.flyToBounds(b, { padding: [60,60], duration: 0.7, maxZoom: nameProp === "NAME_1" ? 6 : 9 });
-      }
-    });
-  }, [selectedState, nameProp]);
+    if (!m || !geo) return;
+
+    // Fly to state (India view → state clicked)
+    if (nameProp === "NAME_1" && lastStateRef.current !== selectedState) {
+      lastStateRef.current = selectedState;
+      if (!selectedState) return;
+      geo.eachLayer((l: any) => {
+        if (l.feature?.properties?.NAME_1 === selectedState) {
+          const b = l.getBounds?.();
+          if (b && b.isValid()) m.flyToBounds(b, { padding: [60, 60], duration: 0.7, maxZoom: 6 });
+        }
+      });
+    }
+
+    // Fly to district (state view → district clicked) — tighter zoom
+    if (nameProp === "NAME_2" && lastDistrictRef.current !== selectedDistrict) {
+      lastDistrictRef.current = selectedDistrict;
+      if (!selectedDistrict) return;
+      geo.eachLayer((l: any) => {
+        if (l.feature?.properties?.NAME_2 === selectedDistrict) {
+          const b = l.getBounds?.();
+          if (b && b.isValid()) m.flyToBounds(b, { padding: [80, 80], duration: 0.75, maxZoom: 11 });
+        }
+      });
+    }
+  }, [selectedState, selectedDistrict, nameProp]);
 
   const onZoom = (d: number) => mapRef.current?.setZoom((mapRef.current?.getZoom() ?? 4) + d, { animate: true });
   const onReset = () => mapRef.current?.flyToBounds(INDIA_BOUNDS, { padding: [20,20], duration: 0.6 });
