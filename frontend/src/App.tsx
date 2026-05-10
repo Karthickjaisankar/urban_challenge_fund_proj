@@ -248,6 +248,21 @@ export default function App() {
     };
   }, [stateFund, stateName]);
 
+  /* ── Benchmark KPIs for comparison in score breakdown ────────────── */
+  // State view → compare against national average (snapshot.national.kpis)
+  // District view → compare against state average (snapshot.states[stateName].kpis)
+  const benchmarkKpis: Record<string, number> = useMemo(() => {
+    if (!snapshot) return {};
+    if (view === "district" && stateName) {
+      return (snapshot.states?.[stateName]?.kpis ?? {}) as Record<string, number>;
+    }
+    return (snapshot.national?.kpis ?? {}) as Record<string, number>;
+  }, [snapshot, view, stateName]);
+
+  const benchmarkLabel = view === "district" && stateName
+    ? `${stateName} avg`
+    : "India avg";
+
   /* ── Score breakdown for the focused region (state panel header) ── */
   const focusedScoreBreakdown = useMemo(() => {
     if (!activeScoringMeta?.kpis || !snapshot?.states) return null;
@@ -394,6 +409,8 @@ export default function App() {
             scores={mapScores}
             scoreBreakdown={focusedScoreBreakdown ?? undefined}
             scoreDeptName={activeScoringMeta?.name ?? "Health"}
+            benchmarkKpis={benchmarkKpis}
+            benchmarkLabel={benchmarkLabel}
           />
         )}
         {rightMode === "district" && districtName && (

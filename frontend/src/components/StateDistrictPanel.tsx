@@ -31,6 +31,8 @@ interface StateDistrictPanelProps {
   scores?: Record<string, number>;
   scoreBreakdown?: { score: number; breakdown: KpiBreakdown[] };
   scoreDeptName?: string;
+  benchmarkKpis?: Record<string, number>;
+  benchmarkLabel?: string;
 }
 
 export function StateDistrictPanel({
@@ -38,6 +40,7 @@ export function StateDistrictPanel({
   deptMetas, fundingState,
   onClose, onSelectDistrict, onChangeDeptFilter, selectedDistrict,
   scores = {}, scoreBreakdown, scoreDeptName = "Health",
+  benchmarkKpis = {}, benchmarkLabel = "India avg",
 }: StateDistrictPanelProps) {
   const activeConf = DEPT_REGISTRY.find(d => d.code === filterDept);
 
@@ -86,7 +89,8 @@ export function StateDistrictPanel({
             score={scoreBreakdown.score}
             breakdown={scoreBreakdown.breakdown}
             scopeLabel={stateName}
-            comparedTo="All India"
+            benchmarkKpis={benchmarkKpis}
+            benchmarkLabel={benchmarkLabel}
           />
         </div>
       )}
