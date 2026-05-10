@@ -25,8 +25,10 @@ const fmt = (v: any, format: string): string => {
   return n.toFixed(1);
 };
 
-/** Smart currency formatter — shows k Cr for large values, plain Cr for small. */
-function fmtCr(v: number): string {
+/** Smart currency formatter — shows k Cr for large values, plain Cr for small.
+ *  Safely handles undefined/null/NaN (returns "—") so missing fields never crash. */
+function fmtCr(v: number | undefined | null): string {
+  if (v == null || !Number.isFinite(v)) return "—";
   if (v >= 1000) return `₹${(v / 1000).toFixed(1)}k Cr`;
   return `₹${v.toFixed(0)} Cr`;
 }

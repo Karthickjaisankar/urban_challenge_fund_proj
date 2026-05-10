@@ -253,13 +253,19 @@ export default function App() {
   const districtFunding = useMemo(() => {
     if (!stateFund || !stateName) return undefined;
     const numDist = (stateName === "Gujarat" ? GJ_DISTRICTS : TN_DISTRICTS).length;
+    const central    = stateFund.central / numDist;
+    const state      = stateFund.state   / numDist;
+    const cenRel     = stateFund.central_released / numDist;
+    const stateRel   = stateFund.state_released   / numDist;
     return {
-      central:              stateFund.central / numDist,
-      central_released:     stateFund.central_released / numDist,
-      state:                stateFund.state / numDist,
-      state_released:       stateFund.state_released / numDist,
+      central,
+      central_released:     cenRel,
+      state,
+      state_released:       stateRel,
       central_release_pct:  stateFund.central_release_pct,
       state_release_pct:    stateFund.state_release_pct,
+      total_allocated:      central + state,
+      total_released:       cenRel  + stateRel,
     };
   }, [stateFund, stateName]);
 
