@@ -237,13 +237,6 @@ export const TN_LANDMARKS: Record<string, Landmark> = {
     description: "Historic fort with panoramic views of surrounding areas",
     lat: 12.1833, lng: 78.8167,
   },
-  "Thanjavur": {
-    name: "Brihadeeswarar Temple (Thanjai Periya Kovil)",
-    type: "UNESCO World Heritage Site",
-    imageUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Thanjavur_Big_Temple_2.jpg?width=600",
-    description: "1000-year-old Chola masterpiece, tallest ancient temple in India",
-    lat: 10.7828, lng: 79.1318,
-  },
 };
 
 /** Notable landmarks for Gujarat districts. */

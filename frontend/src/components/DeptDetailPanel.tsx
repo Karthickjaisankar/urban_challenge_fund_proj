@@ -25,6 +25,12 @@ const fmt = (v: any, format: string): string => {
   return n.toFixed(1);
 };
 
+/** Smart currency formatter — shows k Cr for large values, plain Cr for small. */
+function fmtCr(v: number): string {
+  if (v >= 1000) return `₹${(v / 1000).toFixed(1)}k Cr`;
+  return `₹${v.toFixed(0)} Cr`;
+}
+
 function lookupPath(obj: any, path: string[] | undefined): any {
   if (!Array.isArray(path)) return undefined;
   let cur = obj;
@@ -100,7 +106,7 @@ export function DeptDetailPanel({
                     <IndianRupee size={10} />Central (60%)
                   </div>
                   <div className="fig text-[17px] font-black text-orange-700">
-                    ₹{(fundingState.central / 1000).toFixed(1)}k Cr
+                    {fmtCr(fundingState.central)}
                   </div>
                   <div className="text-[9px] text-slate-500 mt-0.5">{fundingState.central_release_pct?.toFixed(1)}% released</div>
                 </div>
@@ -109,7 +115,7 @@ export function DeptDetailPanel({
                     <IndianRupee size={10} />State (40%)
                   </div>
                   <div className="fig text-[17px] font-black text-green-800">
-                    ₹{(fundingState.state / 1000).toFixed(1)}k Cr
+                    {fmtCr(fundingState.state)}
                   </div>
                   <div className="text-[9px] text-slate-500 mt-0.5">{fundingState.state_release_pct?.toFixed(1)}% released</div>
                 </div>
@@ -122,7 +128,7 @@ export function DeptDetailPanel({
                      }} />
               </div>
               <div className="flex justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                <span>Total: ₹{(fundingState.total_allocated / 1000).toFixed(1)}k Cr</span>
+                <span>Total: {fmtCr(fundingState.total_allocated)}</span>
                 <span>{Math.round(fundingState.total_released / Math.max(1, fundingState.total_allocated) * 100)}% utilized</span>
               </div>
             </div>

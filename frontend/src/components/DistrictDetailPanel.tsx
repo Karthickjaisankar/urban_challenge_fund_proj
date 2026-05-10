@@ -78,12 +78,20 @@ export function DistrictDetailPanel({
           <div className="px-5 pb-3 grid grid-cols-2 gap-2">
             <div className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
               <div className="text-[9px] text-orange-600 uppercase tracking-wider font-bold">Central (est.)</div>
-              <div className="fig text-[15px] font-black text-orange-700">₹{(fundingDistrict.central / 1000).toFixed(1)}k Cr</div>
+              <div className="fig text-[15px] font-black text-orange-700">
+                {fundingDistrict.central >= 1000
+                  ? `₹${(fundingDistrict.central / 1000).toFixed(1)}k Cr`
+                  : `₹${fundingDistrict.central.toFixed(0)} Cr`}
+              </div>
               <div className="text-[9px] text-slate-500">{fundingDistrict.central_release_pct?.toFixed(0)}% released</div>
             </div>
             <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2">
               <div className="text-[9px] text-green-700 uppercase tracking-wider font-bold">State (est.)</div>
-              <div className="fig text-[15px] font-black text-green-800">₹{(fundingDistrict.state / 1000).toFixed(1)}k Cr</div>
+              <div className="fig text-[15px] font-black text-green-800">
+                {fundingDistrict.state >= 1000
+                  ? `₹${(fundingDistrict.state / 1000).toFixed(1)}k Cr`
+                  : `₹${fundingDistrict.state.toFixed(0)} Cr`}
+              </div>
               <div className="text-[9px] text-slate-500">{fundingDistrict.state_release_pct?.toFixed(0)}% released</div>
             </div>
           </div>

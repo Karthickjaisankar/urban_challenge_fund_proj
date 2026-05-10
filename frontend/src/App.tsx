@@ -398,15 +398,17 @@ export default function App() {
           scores={Object.keys(mapScores).length > 0 ? mapScores : undefined}
         />
 
-        {/* Tourism landmark image overlay */}
-        {filterDept === "tourism" && districtName && stateName && (() => {
+        {/* Tourism landmark image overlay — shown for both tourism entry paths:
+             1) Tourism filter active in left sidebar + district selected
+             2) Tourism dept card opened from district detail (districtDeptCode === "tourism") */}
+        {(filterDept === "tourism" || districtDeptCode === "tourism") && districtName && stateName && (() => {
           const landmarks = stateName === "Gujarat" ? GJ_LANDMARKS : TN_LANDMARKS;
           const landmark = landmarks[districtName];
           return landmark ? (
             <TourismLandmarkOverlay
               landmark={landmark}
               districtName={districtName}
-              onClose={() => setDistrictName(null)}
+              onClose={() => districtDeptCode === "tourism" ? setDistrictDeptCode(null) : setDistrictName(null)}
             />
           ) : null;
         })()}
