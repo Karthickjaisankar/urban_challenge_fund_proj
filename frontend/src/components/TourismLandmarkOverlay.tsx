@@ -27,6 +27,8 @@ export function TourismLandmarkOverlay({ landmark, districtName, onClose }: Prop
             src={landmark.imageUrl}
             alt={landmark.name}
             className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
             onError={() => setImgError(true)}
           />
         ) : (
