@@ -3,6 +3,7 @@
  * Shows all 7 departments' KPIs for the selected district vs state average.
  */
 import { ArrowLeft, Heart, BookOpen, Users, Landmark, Zap, ShieldAlert, Compass, LayoutGrid, TrendingDown, TrendingUp } from "lucide-react";
+import { computeScore, scoreGrade } from "@/lib/scoring";
 import { DEPT_REGISTRY } from "@/lib/constants";
 
 const ICONS: Record<string, any> = {
@@ -81,17 +82,48 @@ export function DistrictDetailPanel({
               className="w-full text-left rounded-xl overflow-hidden bg-white border border-slate-100 transition hover:shadow-md"
               style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderTop: `3px solid ${accent}` }}
             >
-              {/* Dept name row */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                     style={{ background: `${accent}15` }}>
-                  <Icon size={16} style={{ color: accent }} />
-                </div>
-                <div>
-                  <div className="text-[13px] font-bold text-slate-800">{meta.name}</div>
-                  <div className="text-[10px] text-slate-400">{conf?.tagline}</div>
-                </div>
-              </div>
+              {/* Dept name row + index score */}
+              {(() => {
+                // Compute the dept index score for this district
+                const kpiMetas = meta.kpis ?? [];
+                const distKpis = deptEntry?.kpis ?? {};
+                const stateKpis = deptEntry?.stateKpis ?? {};
+                // Build a mini 1-region "all regions" map to compute global min/max
+                // For scoring vs state, we treat state avg as the only comparator.
+                // We use: globalMin = 0.9× stateVal, globalMax = 1.1× stateVal (±10% range)
+                // This gives context: district vs state average.
+                const gMin: Record<string, number> = {};
+                const gMax: Record<string, number> = {};
+                kpiMetas.forEach((k: any) => {
+                  const sv = stateKpis[k.code];
+                  if (Number.isFinite(sv) && sv !== 0) {
+                    gMin[k.code] = sv * 0.7;
+                    gMax[k.code] = sv * 1.3;
+                  }
+                });
+                const score = Object.keys(gMin).length
+                  ? computeScore(distKpis, gMin, gMax, kpiMetas)
+                  : null;
+                const grade = score != null ? scoreGrade(score) : null;
+                return (
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                         style={{ background: `${accent}15` }}>
+                      <Icon size={16} style={{ color: accent }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-bold text-slate-800">{meta.name}</div>
+                      <div className="text-[10px] text-slate-400">{conf?.tagline}</div>
+                    </div>
+                    {grade && (
+                      <div className="text-right shrink-0">
+                        <div className="fig text-[17px] font-black" style={{ color: grade.color }}>{score}</div>
+                        <div className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: grade.color, background: grade.bg }}>{grade.label}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* KPI comparison grid */}
               <div className="grid grid-cols-3 gap-0 divide-x divide-slate-100">

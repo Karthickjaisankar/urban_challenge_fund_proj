@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLiveTick } from "@/hooks/useLiveTick";
 import { DEPT_REGISTRY, STATE_CAPITALS } from "@/lib/constants";
+import { computeAllScores, scoreGrade } from "@/lib/scoring";
 import { TN_DISTRICTS, GJ_DISTRICTS, simulateDistrictKPIs } from "@/lib/simulateDistricts";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { ICCCMapCanvas } from "@/components/ICCCMapCanvas";
@@ -112,8 +113,41 @@ export default function App() {
   const ticketStats = useQuery({ queryKey: ["tickets-stats"], queryFn: api.ticketsStats, refetchInterval: 15_000 });
   const openTickets = (ticketStats.data?.open ?? 0) + (ticketStats.data?.reviewing ?? 0);
 
-  /* ── Active dept meta (for filter context) ───────────────────────── */
+  /* ── Active dept meta + composite scores ─────────────────────────── */
   const filterDeptMeta = deptMetas.find((d) => d.code === filterDept);
+
+  // Compute dept Index Scores for all regions visible on the map.
+  // India view:  score per state  (scores change when filterDept changes)
+  // State view:  score per district
+  const mapScores = useMemo<Record<string, number>>(() => {
+    if (!filterDeptMeta?.kpis) return {};
+
+    if (view === "state") {
+      // District-level scores
+      let regionsKpis: Record<string, Record<string, number>> = {};
+      if (filterDept === "health" && districtSnap.data) {
+        Object.entries(districtSnap.data.districts).forEach(([d, s]: any) => {
+          regionsKpis[d] = s.kpis ?? {};
+        });
+      } else if (snapshot?.states?.[stateName!]) {
+        const distList = stateName === "Gujarat" ? GJ_DISTRICTS : TN_DISTRICTS;
+        const stateKpis = snapshot.states[stateName!].kpis ?? {};
+        simulateDistrictKPIs(stateKpis, distList, filterDeptMeta).forEach((r) => {
+          regionsKpis[r.region] = r.kpis;
+        });
+      }
+      if (!Object.keys(regionsKpis).length) return {};
+      return computeAllScores(regionsKpis, filterDeptMeta.kpis);
+    }
+
+    // India view — state-level scores
+    if (!snapshot?.states) return {};
+    const regionsKpis: Record<string, Record<string, number>> = {};
+    Object.entries(snapshot.states).forEach(([s, snap]: any) => {
+      regionsKpis[s] = snap.kpis ?? {};
+    });
+    return computeAllScores(regionsKpis, filterDeptMeta.kpis);
+  }, [filterDeptMeta, snapshot, districtSnap.data, view, stateName, filterDept]);
   const filterKpiMeta  = filterDeptMeta?.kpis?.[0];
 
   /* ── District ranking for StateDistrictPanel ─────────────────────── */
@@ -255,23 +289,41 @@ export default function App() {
       {/* Center map */}
       <div className="relative h-screen overflow-hidden">
         {/* Breadcrumb badge */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200"
-             style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-          <span className="text-[12px] font-bold text-slate-700">
-            {view === "india" ? "🇮🇳 All India"
-              : view === "state" ? `📍 ${stateName}`
-              : `📌 ${districtName}, ${stateName}`}
-          </span>
-          {filterDept && (
-            <>
-              <span className="text-slate-300">·</span>
-              <span className="text-[11px] font-semibold text-slate-500"
-                    style={{ color: accentColor }}>
-                {DEPT_REGISTRY.find(d => d.code === filterDept)?.name}
+        {(() => {
+          const focusRegion = view === "district" ? districtName : view === "state" ? stateName : null;
+          const focusScore  = focusRegion ? mapScores[focusRegion] : undefined;
+          const grade       = Number.isFinite(focusScore) ? scoreGrade(focusScore!) : null;
+          return (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200"
+                 style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+              <span className="text-[12px] font-bold text-slate-700">
+                {view === "india" ? "🇮🇳 All India"
+                  : view === "state" ? `📍 ${stateName}`
+                  : `📌 ${districtName}`}
               </span>
-            </>
-          )}
-        </div>
+              {filterDept && (
+                <>
+                  <span className="text-slate-200 mx-0.5">|</span>
+                  <span className="text-[11px] font-semibold" style={{ color: accentColor }}>
+                    {DEPT_REGISTRY.find(d => d.code === filterDept)?.name}
+                  </span>
+                </>
+              )}
+              {grade && (
+                <>
+                  <span className="text-slate-200 mx-0.5">|</span>
+                  <span className="fig text-[12px] font-black" style={{ color: grade.color }}>
+                    {focusScore}/100
+                  </span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                        style={{ color: grade.color, background: grade.bg }}>
+                    {grade.label}
+                  </span>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         <ICCCMapCanvas
           geojsonUrl={geoUrl}
@@ -282,6 +334,7 @@ export default function App() {
           onSelectDistrict={handleSelectDistrict}
           showDistrictMarkers={view !== "india"}
           accentColor={accentColor}
+          scores={Object.keys(mapScores).length > 0 ? mapScores : undefined}
         />
 
         {/* Home stats strip */}
@@ -309,6 +362,7 @@ export default function App() {
             onSelectDistrict={handleSelectDistrict}
             onChangeDeptFilter={setFilterDept}
             selectedDistrict={districtName}
+            scores={mapScores}
           />
         )}
         {rightMode === "district" && districtName && (

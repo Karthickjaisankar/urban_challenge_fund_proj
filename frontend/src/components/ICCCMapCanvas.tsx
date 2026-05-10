@@ -13,11 +13,39 @@ import { STATE_CAPITALS } from "@/lib/constants";
 
 const INDIA_BOUNDS: L.LatLngBoundsLiteral = [[6.5, 68.0], [37.0, 97.5]];
 
-// Neutral fill for unselected regions; vibrant highlight for the selected one
-function stateColor(isSelected: boolean, isHover: boolean, accentColor: string): { fill: string; fillOpacity: number; weight: number; color: string } {
-  if (isSelected) return { fill: accentColor, fillOpacity: 0.72, weight: 3.0, color: accentColor };
-  if (isHover)    return { fill: accentColor, fillOpacity: 0.28, weight: 1.5, color: accentColor };
-  return               { fill: "#CBD5E0",     fillOpacity: 0.22, weight: 0.8, color: "#94A3B8" };
+// Score-based ramp: 0 = red (needs help), 50 = amber, 100 = teal (excellent)
+const SCORE_RAMP: [number, [number, number, number]][] = [
+  [0,   [185, 28,  36]],   // red
+  [35,  [234, 89,  53]],   // orange-red
+  [50,  [217, 119, 6 ]],   // amber
+  [65,  [101, 184, 75]],   // sea-green
+  [100, [15,  118, 110]],  // teal
+];
+
+function scoreToColor(score: number): string {
+  const ramp = SCORE_RAMP;
+  let lo = ramp[0], hi = ramp[ramp.length - 1];
+  for (let i = 0; i < ramp.length - 1; i++) {
+    if (score >= ramp[i][0] && score <= ramp[i + 1][0]) { lo = ramp[i]; hi = ramp[i + 1]; break; }
+  }
+  const frac = (score - lo[0]) / Math.max(0.0001, hi[0] - lo[0]);
+  const c = [0,1,2].map(j => Math.round(lo[1][j] + (hi[1][j] - lo[1][j]) * frac));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function regionStyle(
+  name: string,
+  isSelected: boolean,
+  isHover: boolean,
+  accentColor: string,
+  scores?: Record<string, number>,
+): { fill: string; fillOpacity: number; weight: number; color: string } {
+  const hasScore = scores && name && Number.isFinite(scores[name]);
+  const fillBase = hasScore ? scoreToColor(scores![name]!) : "#CBD5E0";
+
+  if (isSelected) return { fill: hasScore ? scoreToColor(scores![name]!) : accentColor, fillOpacity: 0.80, weight: 3.0, color: accentColor };
+  if (isHover)    return { fill: fillBase, fillOpacity: hasScore ? 0.80 : 0.35, weight: 1.5, color: "#64748B" };
+  return               { fill: fillBase,  fillOpacity: hasScore ? 0.65 : 0.22, weight: 0.8, color: "#94A3B8" };
 }
 
 function makeNodalIcon(size: number, cssClass: string) {
@@ -38,7 +66,8 @@ interface ICCCMapCanvasProps {
   onSelectDistrict?: (name: string) => void;
   showDistrictMarkers?: boolean;
   accentColor?: string;
-  metricLabel?: string;
+  /** Composite dept scores (0–100) per region — drives choropleth colouring */
+  scores?: Record<string, number>;
 }
 
 export function ICCCMapCanvas({
@@ -46,9 +75,12 @@ export function ICCCMapCanvas({
   selectedState, selectedDistrict,
   onSelectState, onSelectDistrict,
   showDistrictMarkers = false,
-  accentColor = "#00D4AA",
-  metricLabel = "",
+  accentColor = "#3B82F6",
+  scores,
 }: ICCCMapCanvasProps) {
+  // Keep a stable ref so the GeoJSON style closures always see the latest scores
+  const scoresRef = useRef(scores);
+  scoresRef.current = scores;
   const mapEl  = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.GeoJSON | null>(null);
@@ -102,7 +134,7 @@ export function ICCCMapCanvas({
       const styleFor = (feat?: any) => {
         const name = feat?.properties?.[nameProp];
         const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
-        const s = stateColor(isSelected, false, accentColor);
+        const s = regionStyle(name, isSelected, false, accentColor, scoresRef.current);
         return { fillColor: s.fill, fillOpacity: s.fillOpacity, weight: s.weight, color: s.color };
       };
       const geo = L.geoJSON(fc, {
@@ -113,16 +145,20 @@ export function ICCCMapCanvas({
           layer.on({
             mouseover: (e: any) => {
               const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
-              const h = stateColor(isSelected, true, accentColor);
+              const h = regionStyle(name, isSelected, true, accentColor, scoresRef.current);
               e.target.setStyle({ fillColor: h.fill, fillOpacity: h.fillOpacity, weight: h.weight, color: h.color });
+              const sc = scoresRef.current?.[name];
+              const scoreTag = Number.isFinite(sc) && sc != null
+                ? `<span style="margin-left:6px;font-weight:700;color:${scoreToColor(sc)}">${sc}/100</span>`
+                : "";
               e.target.bindTooltip(
-                `<strong>${name}</strong>`,
+                `<strong>${name}</strong>${scoreTag}`,
                 { direction: "top", className: "iccc-map-tip", sticky: true, permanent: false, opacity: 1 },
               ).openTooltip();
             },
             mouseout: (e: any) => {
               const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
-              const s = stateColor(isSelected, false, accentColor);
+              const s = regionStyle(name, isSelected, false, accentColor, scoresRef.current);
               e.target.setStyle({ fillColor: s.fill, fillOpacity: s.fillOpacity, weight: s.weight, color: s.color });
             },
             click: () => {
@@ -156,17 +192,17 @@ export function ICCCMapCanvas({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geojsonUrl, nameProp, accentColor]);
 
-  // Restyle when selected state/district changes (neutral fills — no value encoding)
+  // Restyle when selection or scores change
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     layer.eachLayer((l: any) => {
       const name = l.feature?.properties?.[nameProp];
       const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
-      const s = stateColor(isSelected, false, accentColor);
+      const s = regionStyle(name, isSelected, false, accentColor, scores);
       l.setStyle({ fillColor: s.fill, fillOpacity: s.fillOpacity, weight: s.weight, color: s.color });
     });
-  }, [selectedState, selectedDistrict, nameProp, accentColor]);
+  }, [selectedState, selectedDistrict, nameProp, accentColor, scores]);
 
   // Nodal ICCC markers (state capitals)
   useEffect(() => {
@@ -269,13 +305,6 @@ export function ICCCMapCanvas({
     <div className={fullscreen ? "fixed inset-0 z-[3000]" : "relative w-full h-full"}>
       <div ref={mapEl} className="absolute inset-0" />
 
-      {/* Floating metric badge */}
-      {metricLabel && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[600] px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest text-white"
-             style={{ background: `${accentColor}28`, border: `1px solid ${accentColor}50` }}>
-          {metricLabel}
-        </div>
-      )}
 
       {/* Map controls */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[600] flex flex-col gap-0.5 rounded-xl overflow-hidden map-controls">
@@ -290,8 +319,24 @@ export function ICCCMapCanvas({
         ))}
       </div>
 
+      {/* Score legend — shown only when a dept filter is active */}
+      {scores && Object.keys(scores).length > 0 && (
+        <div className="absolute bottom-4 left-4 z-[600] flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] map-controls">
+          <span className="text-slate-500 font-semibold uppercase tracking-wider mr-1">Score</span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-sm" style={{ background: scoreToColor(0)   }} />
+            <span className="text-slate-500">0</span>
+          </span>
+          <span className="w-16 h-2 rounded-full" style={{ background: "linear-gradient(90deg, rgb(185,28,36), rgb(217,119,6), rgb(15,118,110))" }} />
+          <span className="flex items-center gap-1">
+            <span className="text-slate-500">100</span>
+            <span className="w-3 h-3 rounded-sm" style={{ background: scoreToColor(100) }} />
+          </span>
+        </div>
+      )}
+
       {/* ICCC legend */}
-      <div className="absolute bottom-4 left-4 z-[600] flex items-center gap-4 px-3 py-2 rounded-lg text-[10px] font-mono map-controls">
+      <div className={`absolute z-[600] flex items-center gap-4 px-3 py-2 rounded-lg text-[10px] font-mono map-controls ${scores && Object.keys(scores).length > 0 ? "bottom-4 left-56" : "bottom-4 left-4"}`}>
         <span className="flex items-center gap-1.5">
           <span className="iccc-nodal-dot" style={{ width: 12, height: 12 }} />
           <span className="text-slate-600">Nodal ICCC</span>

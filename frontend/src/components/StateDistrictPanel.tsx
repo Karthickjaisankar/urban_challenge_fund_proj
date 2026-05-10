@@ -4,8 +4,9 @@
  * Department filter from the left sidebar controls which KPI ranks them.
  * Clicking a district → opens DistrictDetailPanel.
  */
-import { X, Trophy, Flame, ChevronRight, Filter } from "lucide-react";
+import { X, ChevronRight, Filter } from "lucide-react";
 import { DEPT_REGISTRY } from "@/lib/constants";
+import { scoreGrade } from "@/lib/scoring";
 
 interface RankRow {
   district: string;
@@ -25,12 +26,14 @@ interface StateDistrictPanelProps {
   onSelectDistrict: (name: string) => void;
   onChangeDeptFilter: (code: string | null) => void;
   selectedDistrict?: string | null;
+  scores?: Record<string, number>;
 }
 
 export function StateDistrictPanel({
   stateName, rows, filterDept, filterKpi, filterKpiUnit,
   deptMetas, fundingState,
   onClose, onSelectDistrict, onChangeDeptFilter, selectedDistrict,
+  scores = {},
 }: StateDistrictPanelProps) {
   const activeConf = DEPT_REGISTRY.find(d => d.code === filterDept);
 
@@ -116,8 +119,11 @@ export function StateDistrictPanel({
           const isSelected = r.district === selectedDistrict;
           const isTop    = i < 3;
           const isBottom = i >= rows.length - 3;
-          const barPct   = r.score; // 0-100 where 100 = best
+          const mapScore = scores[r.district];
+          const displayScore = Number.isFinite(mapScore) ? mapScore : r.score;
+          const barPct   = displayScore;
           const barColor = barPct >= 65 ? "#16A34A" : barPct >= 35 ? "#D97706" : "#DC2626";
+          const grade    = Number.isFinite(mapScore) ? scoreGrade(mapScore) : null;
 
           return (
             <button
@@ -153,10 +159,19 @@ export function StateDistrictPanel({
               </div>
 
               <div className="text-right shrink-0">
-                <div className="fig text-[15px] font-black text-slate-700">
-                  {Number.isFinite(r.value) ? r.value.toFixed(1) : "—"}
-                </div>
-                <div className="text-[9px] text-slate-400 font-mono">{filterKpiUnit || "score"}</div>
+                {grade ? (
+                  <>
+                    <div className="fig text-[15px] font-black" style={{ color: grade.color }}>{displayScore.toFixed(0)}</div>
+                    <div className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: grade.color, background: grade.bg }}>{grade.label}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="fig text-[15px] font-black text-slate-700">
+                      {Number.isFinite(r.value) ? r.value.toFixed(1) : "—"}
+                    </div>
+                    <div className="text-[9px] text-slate-400 font-mono">{filterKpiUnit || "score"}</div>
+                  </>
+                )}
               </div>
 
               <ChevronRight size={14} className="text-slate-300 shrink-0" />
