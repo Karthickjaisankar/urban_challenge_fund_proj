@@ -13,24 +13,11 @@ import { STATE_CAPITALS } from "@/lib/constants";
 
 const INDIA_BOUNDS: L.LatLngBoundsLiteral = [[6.5, 68.0], [37.0, 97.5]];
 
-const RAMP: [number, [number, number, number]][] = [
-  [0.00, [0,  196, 160]],  // teal
-  [0.40, [74, 158, 255]],  // blue
-  [0.70, [255, 179, 71]],  // amber
-  [1.00, [255, 87,  87]],  // red
-];
-
-function ramp(v: number, min: number, max: number, dir: "lower_is_better" | "higher_is_better"): string {
-  if (!Number.isFinite(v)) return "rgba(255,255,255,0.04)";
-  const t = max === min ? 0.5 : (v - min) / (max - min);
-  const k = dir === "lower_is_better" ? t : 1 - t;
-  let lo = RAMP[0], hi = RAMP[RAMP.length - 1];
-  for (let i = 0; i < RAMP.length - 1; i++) {
-    if (k >= RAMP[i][0] && k <= RAMP[i + 1][0]) { lo = RAMP[i]; hi = RAMP[i + 1]; break; }
-  }
-  const frac = (k - lo[0]) / Math.max(0.0001, hi[0] - lo[0]);
-  const c = [0,1,2].map(j => Math.round(lo[1][j] + (hi[1][j] - lo[1][j]) * frac));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
+// Neutral state fill — no data encoding, purely navigational
+function stateColor(isSelected: boolean, isHover: boolean, accentColor: string): { fill: string; fillOpacity: number; weight: number; color: string } {
+  if (isSelected) return { fill: accentColor, fillOpacity: 0.18, weight: 2.5, color: accentColor };
+  if (isHover)    return { fill: "#94A3B8",   fillOpacity: 0.30, weight: 1.2, color: "#64748B" };
+  return               { fill: "#CBD5E0",     fillOpacity: 0.22, weight: 0.8, color: "#94A3B8" };
 }
 
 function makeNodalIcon(size: number, cssClass: string) {
@@ -45,24 +32,20 @@ function makeNodalIcon(size: number, cssClass: string) {
 interface ICCCMapCanvasProps {
   geojsonUrl: string;
   nameProp: "NAME_1" | "NAME_2";
-  values: Record<string, number>;
-  direction: "lower_is_better" | "higher_is_better";
   selectedState: string | null;
   selectedDistrict: string | null;
   onSelectState: (name: string) => void;
   onSelectDistrict?: (name: string) => void;
-  showDistrictMarkers?: boolean;     // show sub-nodal dots on TN districts
-  districtCentroids?: Record<string, [number, number]>; // from geojson
+  showDistrictMarkers?: boolean;
   accentColor?: string;
   metricLabel?: string;
 }
 
 export function ICCCMapCanvas({
-  geojsonUrl, nameProp, values, direction,
+  geojsonUrl, nameProp,
   selectedState, selectedDistrict,
   onSelectState, onSelectDistrict,
   showDistrictMarkers = false,
-  districtCentroids = {},
   accentColor = "#00D4AA",
   metricLabel = "",
 }: ICCCMapCanvasProps) {
@@ -74,12 +57,8 @@ export function ICCCMapCanvas({
   const linesRef    = useRef<L.LayerGroup | null>(null);
   // district centroids computed from geojson bounding-box centres
   const centroidsRef = useRef<Record<string, [number, number]>>({});
-  const valuesRef = useRef(values);
-  const dirRef    = useRef(direction);
   const onSelRef  = useRef(onSelectState);
   const onDistRef = useRef(onSelectDistrict);
-  valuesRef.current = values;
-  dirRef.current    = direction;
   onSelRef.current  = onSelectState;
   onDistRef.current = onSelectDistrict;
   const [fullscreen, setFullscreen] = useState(false);
@@ -89,11 +68,11 @@ export function ICCCMapCanvas({
     if (!mapEl.current || mapRef.current) return;
     const m = L.map(mapEl.current, { zoomControl: false, minZoom: 3, maxBoundsViscosity: 0.7 });
     m.fitBounds(INDIA_BOUNDS, { padding: [10,10], animate: false });
-    // Dark basemap
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+    // CARTO Light basemap
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
       attribution: "&copy; OpenStreetMap &copy; CARTO", subdomains: "abcd", maxZoom: 19,
     }).addTo(m);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", {
       attribution: "", subdomains: "abcd", maxZoom: 19, pane: "shadowPane",
     }).addTo(m);
     mapRef.current = m;
@@ -122,17 +101,9 @@ export function ICCCMapCanvas({
       if (cancelled || !mapRef.current) return;
       const styleFor = (feat?: any) => {
         const name = feat?.properties?.[nameProp];
-        const v = name ? valuesRef.current[name] : NaN;
         const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
-        const arr = Object.values(valuesRef.current).filter(Number.isFinite) as number[];
-        const vmin = arr.length ? Math.min(...arr) : 0;
-        const vmax = arr.length ? Math.max(...arr) : 1;
-        return {
-          fillColor: ramp(v, vmin, vmax, dirRef.current),
-          fillOpacity: Number.isFinite(v) ? (isSelected ? 0.92 : 0.72) : 0.08,
-          weight: isSelected ? 3 : 0.8,
-          color: isSelected ? accentColor : "rgba(255,255,255,0.20)",
-        };
+        const s = stateColor(isSelected, false, accentColor);
+        return { fillColor: s.fill, fillOpacity: s.fillOpacity, weight: s.weight, color: s.color };
       };
       const geo = L.geoJSON(fc, {
         style: styleFor as any,
@@ -141,13 +112,19 @@ export function ICCCMapCanvas({
           if (!name) return;
           layer.on({
             mouseover: (e: any) => {
-              const v = valuesRef.current[name];
+              const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
+              const h = stateColor(isSelected, true, accentColor);
+              e.target.setStyle({ fillColor: h.fill, fillOpacity: h.fillOpacity, weight: h.weight, color: h.color });
               e.target.bindTooltip(
-                `<strong>${name}</strong>${Number.isFinite(v) ? `<span style="color:${accentColor};margin-left:6px;font-weight:700">${v.toFixed(1)}</span>` : ""}`,
+                `<strong>${name}</strong>`,
                 { direction: "top", className: "iccc-map-tip", sticky: true, permanent: false, opacity: 1 },
               ).openTooltip();
             },
-            mouseout: (e: any) => { geo.resetStyle(e.target); },
+            mouseout: (e: any) => {
+              const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
+              const s = stateColor(isSelected, false, accentColor);
+              e.target.setStyle({ fillColor: s.fill, fillOpacity: s.fillOpacity, weight: s.weight, color: s.color });
+            },
             click: () => {
               if (nameProp === "NAME_1") onSelRef.current(name);
               else onDistRef.current?.(name);
@@ -179,25 +156,17 @@ export function ICCCMapCanvas({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geojsonUrl, nameProp, accentColor]);
 
-  // Restyle without rebuild when values change
+  // Restyle when selected state/district changes (neutral fills — no value encoding)
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     layer.eachLayer((l: any) => {
       const name = l.feature?.properties?.[nameProp];
-      const v = name ? values[name] : NaN;
       const isSelected = name === (nameProp === "NAME_1" ? selectedState : selectedDistrict);
-      const arr = Object.values(values).filter(Number.isFinite) as number[];
-      const vmin = arr.length ? Math.min(...arr) : 0;
-      const vmax = arr.length ? Math.max(...arr) : 1;
-      l.setStyle({
-        fillColor: ramp(v, vmin, vmax, direction),
-        fillOpacity: Number.isFinite(v) ? (isSelected ? 0.92 : 0.72) : 0.08,
-        weight: isSelected ? 3 : 0.8,
-        color: isSelected ? accentColor : "rgba(255,255,255,0.20)",
-      });
+      const s = stateColor(isSelected, false, accentColor);
+      l.setStyle({ fillColor: s.fill, fillOpacity: s.fillOpacity, weight: s.weight, color: s.color });
     });
-  }, [values, selectedState, selectedDistrict, direction, nameProp, accentColor]);
+  }, [selectedState, selectedDistrict, nameProp, accentColor]);
 
   // Nodal ICCC markers (state capitals)
   useEffect(() => {
@@ -292,8 +261,7 @@ export function ICCCMapCanvas({
       )}
 
       {/* Map controls */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[600] flex flex-col gap-1 rounded-xl overflow-hidden border border-white/10"
-           style={{ background: "rgba(13,24,33,0.9)", backdropFilter: "blur(8px)" }}>
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[600] flex flex-col gap-0.5 rounded-xl overflow-hidden map-controls">
         {[
           { icon: <Plus size={14} />, fn: () => onZoom(1), title: "Zoom in" },
           { icon: <Minus size={14} />, fn: () => onZoom(-1), title: "Zoom out" },
@@ -301,31 +269,19 @@ export function ICCCMapCanvas({
           { icon: fullscreen ? <Minimize2 size={13}/> : <Maximize2 size={13}/>, fn: () => setFullscreen(v => !v), title: "Fullscreen" },
         ].map(({ icon, fn, title }, i) => (
           <button key={i} onClick={fn} title={title}
-            className="p-2 hover:bg-white/10 text-white/60 hover:text-white transition">{icon}</button>
+            className="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition">{icon}</button>
         ))}
       </div>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-[600] flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-mono text-white/60"
-           style={{ background: "rgba(13,24,33,0.85)", border: "1px solid rgba(255,255,255,0.09)" }}>
-        <div className="flex items-center gap-1">
-          <span className="w-8 h-2 rounded-full" style={{ background: "linear-gradient(90deg, #00D4AA, #4A9EFF, #FFB347, #FF5757)" }} />
-          <span className="ml-1">Better</span>
-          <span className="mx-1">→</span>
-          <span>Worse</span>
-        </div>
-      </div>
-
       {/* ICCC legend */}
-      <div className="absolute bottom-4 left-40 z-[600] flex items-center gap-4 px-3 py-2 rounded-lg text-[10px] font-mono"
-           style={{ background: "rgba(13,24,33,0.85)", border: "1px solid rgba(255,255,255,0.09)" }}>
+      <div className="absolute bottom-4 left-4 z-[600] flex items-center gap-4 px-3 py-2 rounded-lg text-[10px] font-mono map-controls">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-yellow-400" />
-          <span className="text-white/60">Nodal ICCC</span>
+          <span className="iccc-nodal-dot" style={{ width: 12, height: 12 }} />
+          <span className="text-slate-600">Nodal ICCC</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#4A9EFF" }} />
-          <span className="text-white/60">Sub-Nodal ICCC</span>
+          <span className="iccc-sub-dot" style={{ width: 9, height: 9 }} />
+          <span className="text-slate-600">Sub-Nodal ICCC</span>
         </span>
       </div>
     </div>

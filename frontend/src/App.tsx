@@ -3,8 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLiveTick } from "@/hooks/useLiveTick";
 import { DEPT_REGISTRY } from "@/lib/constants";
-import { TN_DISTRICTS, GJ_DISTRICTS } from "@/lib/simulateDistricts";
-import { simulateDistrictKPIs } from "@/lib/simulateDistricts";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { ICCCMapCanvas } from "@/components/ICCCMapCanvas";
 import { HomeStatsStrip } from "@/components/HomeStatsStrip";
@@ -105,53 +103,8 @@ export default function App() {
 
   const activeKpiMeta = dept?.kpis?.find((k: any) => k.code === primaryKpi);
 
-  /* ── Choropleth values ─────────────────────────────────────────────── */
-  const choroValues = useMemo(() => {
-    // Home view with NO dept selected → show UCF overall fund utilisation % per state.
-    // This gives an informative, colorful home screen (higher = greener = better).
-    if (view === "india" && !activeDept) {
-      if (deptFunding.data) {
-        const out: Record<string, number> = {};
-        const states = Object.keys(deptFunding.data["health"]?.per_state ?? {});
-        states.forEach((state) => {
-          let totalAlloc = 0, totalReleased = 0;
-          DEPT_REGISTRY.forEach((d) => {
-            const f = (deptFunding.data as any)[d.code]?.per_state?.[state];
-            if (f) { totalAlloc += f.total_allocated ?? 0; totalReleased += f.total_released ?? 0; }
-          });
-          out[state] = totalAlloc > 0 ? Math.round((totalReleased / totalAlloc) * 100) : 50;
-        });
-        return out;
-      }
-      // Fallback while funding loads: uniform teal
-      return Object.fromEntries((meta.data?.states ?? []).map((s: string) => [s, 60]));
-    }
-
-    if (!primaryKpi) return {};
-    if (view === "state") {
-      // district level
-      if (activeDept === "health" && districtSnap.data) {
-        const out: Record<string, number> = {};
-        Object.entries(districtSnap.data.districts).forEach(([k, v]: any) => { out[k] = v.kpis?.[primaryKpi]; });
-        return out;
-      }
-      // Simulated district data for non-Health
-      if (snapshot?.states?.[stateName!] && dept) {
-        const stateKpis = snapshot.states[stateName!].kpis;
-        const distList  = stateName === "Gujarat" ? GJ_DISTRICTS : TN_DISTRICTS;
-        const simRows   = simulateDistrictKPIs(stateKpis, distList, dept);
-        const out: Record<string, number> = {};
-        simRows.forEach((r) => { out[r.region] = r.kpis[primaryKpi]; });
-        return out;
-      }
-      return {};
-    }
-    // India view
-    if (!snapshot?.states) return {};
-    const out: Record<string, number> = {};
-    Object.entries(snapshot.states).forEach(([k, v]: any) => { out[k] = v.kpis?.[primaryKpi]; });
-    return out;
-  }, [view, primaryKpi, snapshot, districtSnap.data, activeDept, stateName, dept]);
+  // No choropleth coloring — map uses neutral fills for all states/districts.
+  // Colors are shown only in the right panel cards and KPI tiles, not on the map.
 
   /* ── Per-state funding for right panel ────────────────────────────── */
   const stateDeptFunding = useMemo(() => {
@@ -238,38 +191,25 @@ export default function App() {
 
       {/* ── Center: map + overlays ────────────────────────────────────── */}
       <div className="relative h-screen overflow-hidden">
-        {/* KPI selector pills */}
-        {activeDept && dept?.kpis && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[700] flex items-center gap-1 rounded-full p-1"
-               style={{ background: "rgba(8,14,22,0.90)", border: "1px solid rgba(255,255,255,0.10)" }}>
-            {dept.kpis.map((k: any) => (
-              <button key={k.code} onClick={() => setPrimaryKpi(k.code)}
-                className="px-3 py-1.5 text-[11px] font-bold rounded-full transition"
-                style={{ background: primaryKpi === k.code ? k.accent : "transparent",
-                         color: primaryKpi === k.code ? "#000" : "rgba(255,255,255,0.5)" }}>
-                {k.short}
-              </button>
-            ))}
+        {/* Dept label badge — top center of map */}
+        {activeDept && dept && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full"
+               style={{ background: "rgba(255,255,255,0.92)", border: `1.5px solid ${DEPT_REGISTRY.find(d=>d.code===activeDept)?.accent}40`, boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: DEPT_REGISTRY.find(d=>d.code===activeDept)?.accent }} />
+            <span className="text-[12px] font-bold text-slate-700">{dept.name}</span>
+            {stateName && <><span className="text-slate-300 mx-1">›</span><span className="text-[12px] font-semibold text-slate-500">{stateName}</span></>}
           </div>
         )}
 
         <ICCCMapCanvas
           geojsonUrl={geoUrl}
           nameProp={nameProp}
-          values={choroValues}
-          direction={
-            // Home view without dept: UCF utilization — higher is better
-            view === "india" && !activeDept
-              ? "higher_is_better"
-              : (activeKpiMeta?.direction ?? "lower_is_better")
-          }
           selectedState={view === "state" ? stateName : null}
           selectedDistrict={districtName}
           onSelectState={handleSelectState}
           onSelectDistrict={(name) => { setDistrictName(name); }}
           showDistrictMarkers={view === "state"}
-          accentColor={dept ? (DEPT_REGISTRY.find(d => d.code === activeDept)?.accent ?? "#00D4AA") : "#00D4AA"}
-          metricLabel={primaryKpi ? `${activeKpiMeta?.short ?? primaryKpi} · ${activeKpiMeta?.unit ?? ""}` : ""}
+          accentColor={DEPT_REGISTRY.find(d => d.code === activeDept)?.accent ?? "#3B82F6"}
         />
 
         {/* Home stats strip */}

@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Base reset ────────────────────────────────────────────────────────── */
-:root { color-scheme: dark; }
+/* ── Base ──────────────────────────────────────────────────────────────── */
+:root { color-scheme: light; }
 html, body, #root { height: 100%; overflow: hidden; }
 
 /* ── 3-panel grid ──────────────────────────────────────────────────────── */
@@ -27,21 +27,15 @@ html, body, #root { height: 100%; overflow: hidden; }
   letter-spacing: -0.025em;
 }
 
-/* ── Card surface ──────────────────────────────────────────────────────── */
-.card-dark {
-  background: rgba(22, 32, 51, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* ── Light card ────────────────────────────────────────────────────────── */
+.card-light {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 14px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px -12px rgba(0,0,0,0.10);
 }
 
-/* ── Dept accent glow helper (set --dept-color on element) ─────────────── */
-.dept-glow {
-  box-shadow: 0 0 0 1px var(--dept-color, #fff), 0 0 24px -6px var(--dept-color, transparent);
-}
-
-/* ── Sidebar nav item ──────────────────────────────────────────────────── */
+/* ── Sidebar nav (dark stays dark) ────────────────────────────────────── */
 .nav-item {
   @apply flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all cursor-pointer;
   @apply text-[13px] font-semibold text-slate-300;
@@ -54,55 +48,57 @@ html, body, #root { height: 100%; overflow: hidden; }
 .iccc-nodal-dot {
   width: 16px; height: 16px; border-radius: 50%;
   background: #FFD700;
-  border: 2.5px solid rgba(255,255,255,0.7);
+  border: 2.5px solid rgba(255,255,255,0.9);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   animation: pulseRingCSS 2.2s ease-in-out infinite;
 }
 .iccc-sub-dot {
   width: 10px; height: 10px; border-radius: 50%;
-  background: #4A9EFF;
-  border: 2px solid rgba(255,255,255,0.5);
+  background: #3B82F6;
+  border: 2px solid rgba(255,255,255,0.85);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.20);
   animation: pulseBlueCSS 2.8s ease-in-out infinite;
 }
 
 @keyframes pulseRingCSS {
-  0%   { box-shadow: 0 0 0 0 rgba(255,215,0,0.65); }
-  70%  { box-shadow: 0 0 0 14px rgba(255,215,0,0); }
-  100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+  0%   { box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 0 0 0 rgba(255,215,0,0.65); }
+  70%  { box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 0 0 14px rgba(255,215,0,0); }
+  100% { box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 0 0 0 rgba(255,215,0,0); }
 }
 @keyframes pulseBlueCSS {
-  0%   { box-shadow: 0 0 0 0 rgba(74,158,255,0.55); }
-  70%  { box-shadow: 0 0 0 8px rgba(74,158,255,0); }
-  100% { box-shadow: 0 0 0 0 rgba(74,158,255,0); }
+  0%   { box-shadow: 0 1px 4px rgba(0,0,0,0.20), 0 0 0 0 rgba(59,130,246,0.55); }
+  70%  { box-shadow: 0 1px 4px rgba(0,0,0,0.20), 0 0 0 8px rgba(59,130,246,0); }
+  100% { box-shadow: 0 1px 4px rgba(0,0,0,0.20), 0 0 0 0 rgba(59,130,246,0); }
 }
 
-/* ── Leaflet dark overrides ────────────────────────────────────────────── */
+/* ── Leaflet — light map overrides ────────────────────────────────────── */
 .leaflet-container {
-  background: #0D1821 !important;
+  background: #EEF2F7 !important;
   font-family: "Manrope", sans-serif;
   outline: none;
 }
 .leaflet-control-attribution {
-  background: rgba(13,24,33,0.8) !important;
-  color: rgba(255,255,255,0.3) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: rgba(0, 0, 0, 0.4) !important;
   font-size: 9px !important;
 }
-.leaflet-control-attribution a { color: rgba(74,158,255,0.6) !important; }
+.leaflet-control-attribution a { color: #3B82F6 !important; }
 
-/* State/district hover tooltip on map */
+/* Map tooltip — light style */
 .iccc-map-tip {
-  background: rgba(13,24,33,0.95) !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
   border-radius: 8px !important;
-  color: #E8EDF5 !important;
+  color: #1A202C !important;
   font-family: "Manrope", sans-serif;
   font-size: 12px;
   font-weight: 600;
   padding: 6px 10px !important;
-  box-shadow: 0 8px 24px -8px rgba(0,0,0,0.6) !important;
+  box-shadow: 0 4px 16px -4px rgba(0,0,0,0.18) !important;
 }
 .iccc-map-tip::before { display: none; }
 
-/* ── Right panel ───────────────────────────────────────────────────────── */
+/* ── Right slide-in panel — LIGHT ──────────────────────────────────────── */
 .right-panel {
   position: fixed;
   top: 0; right: 0; bottom: 0;
@@ -111,37 +107,40 @@ html, body, #root { height: 100%; overflow: hidden; }
   transform: translateX(100%);
   transition: transform 330ms cubic-bezier(.2,.9,.2,1);
   overflow-y: auto;
-  background: rgba(9,18,29,0.97);
-  border-left: 1px solid rgba(255,255,255,0.09);
-  backdrop-filter: blur(16px);
+  background: #F7F9FC;
+  border-left: 1px solid rgba(0,0,0,0.08);
+  box-shadow: -8px 0 32px -8px rgba(0,0,0,0.12);
 }
 .right-panel.open { transform: translateX(0); }
 
-/* ── Scrollbar (dark, thin) ────────────────────────────────────────────── */
-* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.12) transparent; }
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.14); border-radius: 2px; }
 
-/* ── Pulse animation (loading indicator) ──────────────────────────────── */
+/* ── Pulse dot (live indicator) ───────────────────────────────────────── */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.4); }
 }
 .pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
 
-/* ── Skeleton shimmer ──────────────────────────────────────────────────── */
+/* ── Skeleton shimmer ─────────────────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200px 0; }
   100% { background-position: 200px 0; }
 }
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255,255,255,0.04) 0px,
-    rgba(255,255,255,0.10) 40px,
-    rgba(255,255,255,0.04) 80px
-  );
+  background: linear-gradient(90deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.08) 40px, rgba(0,0,0,0.04) 80px);
   background-size: 200px 100%;
   animation: shimmer 1.4s linear infinite;
   border-radius: 6px;
+}
+
+/* ── Map controls panel ───────────────────────────────────────────────── */
+.map-controls {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow: 0 2px 12px -4px rgba(0,0,0,0.14);
+  backdrop-filter: blur(6px);
 }

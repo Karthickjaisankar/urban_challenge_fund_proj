@@ -9,7 +9,19 @@ export default {
         mono:    ["'JetBrains Mono'", "monospace"],
       },
       colors: {
-        // ── Dark navy shell ─────────────────────────────────────────────────
+        // ── Light surface (center + right panel) ───────────────────────────
+        surface: {
+          50:  "#FFFFFF",
+          100: "#F7F9FC",
+          200: "#EEF2F7",   // page background
+          300: "#E2E8F0",
+          400: "#CBD5E0",
+          500: "#A0AEC0",
+          700: "#4A5568",
+          800: "#2D3748",
+          900: "#1A202C",
+        },
+        // ── Dark sidebar (kept intentionally) ──────────────────────────────
         shell: {
           950: "#080E16",
           900: "#0D1821",
