@@ -69,8 +69,11 @@ export function ICCCMapCanvas({
   const mapEl  = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.GeoJSON | null>(null);
-  const nodalRef = useRef<L.LayerGroup | null>(null);
+  const nodalRef    = useRef<L.LayerGroup | null>(null);
   const subNodalRef = useRef<L.LayerGroup | null>(null);
+  const linesRef    = useRef<L.LayerGroup | null>(null);
+  // district centroids computed from geojson bounding-box centres
+  const centroidsRef = useRef<Record<string, [number, number]>>({});
   const valuesRef = useRef(values);
   const dirRef    = useRef(direction);
   const onSelRef  = useRef(onSelectState);
@@ -94,8 +97,9 @@ export function ICCCMapCanvas({
       attribution: "", subdomains: "abcd", maxZoom: 19, pane: "shadowPane",
     }).addTo(m);
     mapRef.current = m;
-    nodalRef.current = L.layerGroup().addTo(m);
-    subNodalRef.current = L.layerGroup().addTo(m);
+    nodalRef.current    = L.layerGroup().addTo(m);
+    linesRef.current    = L.layerGroup().addTo(m);
+    subNodalRef.current = L.layerGroup().addTo(m); // on top of lines
     return () => { m.remove(); mapRef.current = null; };
   }, []);
 
@@ -152,10 +156,27 @@ export function ICCCMapCanvas({
         },
       }).addTo(mapRef.current!);
       layerRef.current = geo;
+
+      // Extract approximate centroids from each feature's bounding box
+      const centroids: Record<string, [number, number]> = {};
+      geo.eachLayer((l: any) => {
+        const name = l.feature?.properties?.[nameProp];
+        const b = l.getBounds?.();
+        if (name && b && b.isValid()) {
+          const c = b.getCenter();
+          centroids[name] = [c.lat, c.lng];
+        }
+      });
+      centroidsRef.current = centroids;
+
       const b = geo.getBounds();
       if (b.isValid()) mapRef.current!.fitBounds(b, { padding: [20,20], animate: true, duration: 0.5 });
+
+      // Re-draw sub-nodal markers + lines now that centroids are fresh
+      drawSubNodal();
     });
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geojsonUrl, nameProp, accentColor]);
 
   // Restyle without rebuild when values change
@@ -191,19 +212,53 @@ export function ICCCMapCanvas({
     });
   }, []);
 
-  // Sub-nodal markers for TN districts
-  useEffect(() => {
-    const grp = subNodalRef.current;
-    if (!grp) return;
-    grp.clearLayers();
+  // Sub-nodal markers + dotted connection lines from Nodal ICCC to each district
+  // Runs whenever showDistrictMarkers changes, or after centroids are computed (geojson reload)
+  const drawSubNodal = () => {
+    const markerGrp = subNodalRef.current;
+    const lineGrp   = linesRef.current;
+    if (!markerGrp || !lineGrp) return;
+    markerGrp.clearLayers();
+    lineGrp.clearLayers();
     if (!showDistrictMarkers) return;
-    Object.entries(districtCentroids).forEach(([district, [lat, lng]]) => {
+
+    // Use centroidsRef (computed after GeoJSON loads) as the authoritative source
+    const centroids = centroidsRef.current;
+    if (!Object.keys(centroids).length) return;
+
+    // Nodal (state capital) coordinates
+    const nodalCoord = selectedState ? STATE_CAPITALS[selectedState] : null;
+
+    Object.entries(centroids).forEach(([district, [lat, lng]]) => {
+      // Sub-Nodal marker
       const marker = L.marker([lat, lng], { icon: makeNodalIcon(10, "iccc-sub-dot"), zIndexOffset: 100 });
-      marker.bindTooltip(`<span style="color:#4A9EFF">◉ Sub-Nodal ICCC</span><br>${district}`, { className: "iccc-map-tip", direction: "top" });
+      marker.bindTooltip(
+        `<span style="color:#4A9EFF">◉ Sub-Nodal ICCC</span><br><strong>${district}</strong>`,
+        { className: "iccc-map-tip", direction: "top" },
+      );
       marker.on("click", () => onDistRef.current?.(district));
-      grp.addLayer(marker);
+      markerGrp.addLayer(marker);
+
+      // Dotted line from Nodal → Sub-Nodal
+      if (nodalCoord) {
+        const line = L.polyline([nodalCoord, [lat, lng]], {
+          color: "rgba(255,215,0,0.45)",
+          weight: 1.5,
+          dashArray: "4 6",
+          lineCap: "round",
+          lineJoin: "round",
+        });
+        lineGrp.addLayer(line);
+      }
     });
-  }, [showDistrictMarkers, districtCentroids]);
+  };
+
+  useEffect(() => {
+    // Redraw after a small delay to let centroidsRef populate from the GeoJSON load
+    const id = setTimeout(drawSubNodal, 120);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDistrictMarkers, selectedState]);
 
   // Fly to selected state
   const lastSelRef = useRef<string | null | undefined>(undefined);

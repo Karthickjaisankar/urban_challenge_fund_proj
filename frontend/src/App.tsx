@@ -107,6 +107,26 @@ export default function App() {
 
   /* ── Choropleth values ─────────────────────────────────────────────── */
   const choroValues = useMemo(() => {
+    // Home view with NO dept selected → show UCF overall fund utilisation % per state.
+    // This gives an informative, colorful home screen (higher = greener = better).
+    if (view === "india" && !activeDept) {
+      if (deptFunding.data) {
+        const out: Record<string, number> = {};
+        const states = Object.keys(deptFunding.data["health"]?.per_state ?? {});
+        states.forEach((state) => {
+          let totalAlloc = 0, totalReleased = 0;
+          DEPT_REGISTRY.forEach((d) => {
+            const f = (deptFunding.data as any)[d.code]?.per_state?.[state];
+            if (f) { totalAlloc += f.total_allocated ?? 0; totalReleased += f.total_released ?? 0; }
+          });
+          out[state] = totalAlloc > 0 ? Math.round((totalReleased / totalAlloc) * 100) : 50;
+        });
+        return out;
+      }
+      // Fallback while funding loads: uniform teal
+      return Object.fromEntries((meta.data?.states ?? []).map((s: string) => [s, 60]));
+    }
+
     if (!primaryKpi) return {};
     if (view === "state") {
       // district level
@@ -237,7 +257,12 @@ export default function App() {
           geojsonUrl={geoUrl}
           nameProp={nameProp}
           values={choroValues}
-          direction={activeKpiMeta?.direction ?? "lower_is_better"}
+          direction={
+            // Home view without dept: UCF utilization — higher is better
+            view === "india" && !activeDept
+              ? "higher_is_better"
+              : (activeKpiMeta?.direction ?? "lower_is_better")
+          }
           selectedState={view === "state" ? stateName : null}
           selectedDistrict={districtName}
           onSelectState={handleSelectState}
