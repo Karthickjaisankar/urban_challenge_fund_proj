@@ -55,7 +55,7 @@ export function StateDistrictPanel({
             </div>
             <div className="display text-2xl font-black text-slate-900 leading-tight">{stateName}</div>
             <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" style={{ boxShadow: "0 0 5px rgba(255,215,0,0.7)" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400" style={{ boxShadow: "0 0 5px rgba(239,68,68,0.7)" }} />
               <span className="text-[11px] text-slate-500 font-medium">{rows.length} districts · sub-nodal ICCCs</span>
             </div>
           </div>

@@ -59,14 +59,14 @@ export function LeftSidebar({
         <div className="space-y-1">
           <button onClick={onGoIndia}
             className={`flex items-center gap-2 w-full text-left text-[13px] font-semibold transition rounded-lg px-2 py-1.5 ${
-              view === "india" ? "text-yellow-400 bg-white/05" : "text-white/50 hover:text-white hover:bg-white/05"
+              view === "india" ? "text-red-400 bg-white/05" : "text-white/50 hover:text-white hover:bg-white/05"
             }`}>
             <span className="text-[11px]">🇮🇳</span> All India
           </button>
           {stateName && (
             <button onClick={onGoState}
               className={`flex items-center gap-2 w-full text-left text-[13px] font-semibold transition rounded-lg px-2 py-1.5 ml-2 ${
-                view === "state" ? "text-yellow-400 bg-white/05" : "text-white/50 hover:text-white hover:bg-white/05"
+                view === "state" ? "text-red-400 bg-white/05" : "text-white/50 hover:text-white hover:bg-white/05"
               }`}>
               <ChevronRight size={12} className="text-white/25 shrink-0" />
               <span className="truncate">{stateName}</span>
@@ -74,7 +74,7 @@ export function LeftSidebar({
             </button>
           )}
           {districtName && (
-            <div className="flex items-center gap-2 text-[13px] font-semibold rounded-lg px-2 py-1.5 ml-4 text-yellow-400 bg-white/05">
+            <div className="flex items-center gap-2 text-[13px] font-semibold rounded-lg px-2 py-1.5 ml-4 text-red-400 bg-white/05">
               <ChevronRight size={12} className="text-white/25 shrink-0" />
               <span className="truncate">{districtName}</span>
               <span className="text-[9px] text-white/20 font-normal shrink-0">Sub-Nodal</span>

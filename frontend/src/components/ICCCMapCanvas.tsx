@@ -211,7 +211,7 @@ export function ICCCMapCanvas({
     grp.clearLayers();
     Object.entries(STATE_CAPITALS).forEach(([state, [lat, lng]]) => {
       const marker = L.marker([lat, lng], { icon: makeNodalIcon(16, "iccc-nodal-dot"), zIndexOffset: 200 });
-      marker.bindTooltip(`<span style="color:#FFD700">⬡ Nodal ICCC</span><br>${state}`, { className: "iccc-map-tip", direction: "top" });
+      marker.bindTooltip(`<span style="color:#EF4444;font-weight:700">⬡ Nodal ICCC</span><br>${state}`, { className: "iccc-map-tip", direction: "top" });
       marker.on("click", () => { if (onSelRef.current) onSelRef.current(state); });
       grp.addLayer(marker);
     });
@@ -247,7 +247,7 @@ export function ICCCMapCanvas({
       // Dotted line from Nodal → Sub-Nodal
       if (nodalCoord) {
         const line = L.polyline([nodalCoord, [lat, lng]], {
-          color: "rgba(255,215,0,0.45)",
+          color: "rgba(239,68,68,0.50)",
           weight: 1.5,
           dashArray: "4 6",
           lineCap: "round",
@@ -338,11 +338,11 @@ export function ICCCMapCanvas({
       {/* ICCC legend */}
       <div className={`absolute z-[600] flex items-center gap-4 px-3 py-2 rounded-lg text-[10px] font-mono map-controls ${scores && Object.keys(scores).length > 0 ? "bottom-4 left-56" : "bottom-4 left-4"}`}>
         <span className="flex items-center gap-1.5">
-          <span className="iccc-nodal-dot" style={{ width: 12, height: 12 }} />
+          <span className="w-3 h-3 rounded-full shrink-0" style={{ background: "#EF4444", border: "2px solid white", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
           <span className="text-slate-600">Nodal ICCC</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="iccc-sub-dot" style={{ width: 9, height: 9 }} />
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: "#F87171", border: "1.5px solid white", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }} />
           <span className="text-slate-600">Sub-Nodal ICCC</span>
         </span>
       </div>

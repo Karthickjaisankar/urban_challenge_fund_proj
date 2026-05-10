@@ -1,4 +1,5 @@
-/** State capitals (latitude, longitude) for ICCC Nodal markers. */
+/** State capitals (latitude, longitude) for ICCC Nodal markers.
+ *  Keyed by current official name (post-rename) so callers normalise first. */
 export const STATE_CAPITALS: Record<string, [number, number]> = {
   "Andhra Pradesh":   [15.9129, 79.7400],   // Amaravati area
   "Arunachal Pradesh":[27.0844, 93.6053],
@@ -47,6 +48,15 @@ export const DEPT_REGISTRY = [
   { code: "disaster",  name: "Disaster Mgmt",   accent: "#FF5757", icon: "ShieldAlert",    tagline: "ART · EWC · Relief" },
   { code: "tourism",   name: "Tourism",         accent: "#A78BFA", icon: "Compass",        tagline: "Domestic · FTA · Occ" },
 ];
+
+/**
+ * GeoJSON (GADM ~2012) uses old state names. Map them to the current official
+ * names used throughout the backend so clicks + scores work correctly.
+ */
+export const GEOJSON_TO_BACKEND: Record<string, string> = {
+  "Orissa":      "Odisha",       // renamed 2011
+  "Uttaranchal": "Uttarakhand",  // renamed 2006
+};
 
 export const UCF_TOTAL_CR = 1_00_000;
 export const UCF_CENTRAL_SHARE = 0.60;

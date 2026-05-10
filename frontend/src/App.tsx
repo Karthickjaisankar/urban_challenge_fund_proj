@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLiveTick } from "@/hooks/useLiveTick";
-import { DEPT_REGISTRY, STATE_CAPITALS } from "@/lib/constants";
+import { DEPT_REGISTRY, STATE_CAPITALS, GEOJSON_TO_BACKEND } from "@/lib/constants";
 import { computeAllScores, computeScoreWithBreakdown, scoreGrade } from "@/lib/scoring";
 import { TN_DISTRICTS, GJ_DISTRICTS, simulateDistrictKPIs } from "@/lib/simulateDistricts";
 import { LeftSidebar } from "@/components/LeftSidebar";
@@ -150,7 +150,12 @@ export default function App() {
     Object.entries(snapshot.states).forEach(([s, snap]: any) => {
       regionsKpis[s] = snap.kpis ?? {};
     });
-    return computeAllScores(regionsKpis, activeScoringMeta.kpis);
+    const scores = computeAllScores(regionsKpis, activeScoringMeta.kpis);
+    // Add GeoJSON alias entries so old-named polygons also get coloured
+    Object.entries(GEOJSON_TO_BACKEND).forEach(([geoName, backendName]) => {
+      if (scores[backendName] !== undefined) scores[geoName] = scores[backendName];
+    });
+    return scores;
   }, [activeScoringMeta, snapshot, districtSnap.data, view, stateName, filterDept]);
   const filterKpiMeta  = filterDeptMeta?.kpis?.[0];
 
@@ -292,7 +297,9 @@ export default function App() {
 
   /* ── Navigation helpers ──────────────────────────────────────────── */
   const handleSelectState = (name: string) => {
-    setStateName(name);
+    // Normalise GeoJSON old names to current official names
+    const canonical = GEOJSON_TO_BACKEND[name] ?? name;
+    setStateName(canonical);
     setDistrictName(null);
     setView("state");
   };
