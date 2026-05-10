@@ -14,85 +14,85 @@ District-level seeds for TN deep-dive use NFHS-5 district fact sheets.
 from __future__ import annotations
 
 # State-level Health KPI seeds.
-# Each entry: (IMR per 1000, MMR per 100k, OOPE % of THE)
-# Sources: SRS 2020 (IMR), SRS 2018-20 Special Bulletin (MMR), NHA 2019-20 (OOPE).
+# Each entry: (IMR per 1000, MMR per 100k, TFR children per woman)
+# Sources: SRS 2020 (IMR), SRS 2018-20 Special Bulletin (MMR), NFHS-5 2019-21 (TFR).
+# TFR replaces OOPE: Total Fertility Rate is a core demographic health outcome;
+# lower_is_better, SDG/NHP target ≤ 2.1. OOPE moved to scheme-level tracking.
 HEALTH_STATE_BASELINES: dict[str, tuple[float, float, float]] = {
-    "Andhra Pradesh":            (24, 45, 32.1),
-    "Arunachal Pradesh":         (21, 78, 45.0),
-    "Assam":                     (36, 195, 33.2),
-    "Bihar":                     (27, 118, 56.1),
-    "Chhattisgarh":              (38, 137, 41.0),
-    "Goa":                       (5, 35, 26.5),
-    "Gujarat":                   (23, 57, 35.8),
-    "Haryana":                   (28, 96, 51.7),
-    "Himachal Pradesh":          (17, 70, 41.2),
-    "Jammu and Kashmir":         (16, 60, 34.0),
-    "Jharkhand":                 (25, 56, 49.5),
-    "Karnataka":                 (19, 69, 31.4),
-    "Kerala":                    (6, 19, 49.6),
-    "Madhya Pradesh":            (41, 173, 47.9),
-    "Maharashtra":               (16, 33, 38.5),
-    "Manipur":                   (6, 50, 47.0),
-    "Meghalaya":                 (24, 60, 35.0),
-    "Mizoram":                   (3, 45, 28.0),
-    "Nagaland":                  (7, 50, 30.0),
-    "Odisha":                    (36, 119, 55.0),
-    "Punjab":                    (18, 105, 53.4),
-    "Rajasthan":                 (32, 113, 50.7),
-    "Sikkim":                    (5, 50, 28.0),
-    "Tamil Nadu":                (13, 54, 35.4),
-    "Telangana":                 (21, 43, 32.0),
-    "Tripura":                   (19, 60, 30.0),
-    "Uttar Pradesh":             (38, 167, 62.0),
-    "Uttarakhand":               (24, 103, 45.0),
-    "West Bengal":               (19, 103, 50.5),
+    "Andhra Pradesh":            (24, 45, 1.7),
+    "Arunachal Pradesh":         (21, 78, 2.1),
+    "Assam":                     (36, 195, 1.9),
+    "Bihar":                     (27, 118, 3.0),
+    "Chhattisgarh":              (38, 137, 2.2),
+    "Goa":                       (5, 35, 1.7),
+    "Gujarat":                   (23, 57, 2.0),
+    "Haryana":                   (28, 96, 1.9),
+    "Himachal Pradesh":          (17, 70, 1.7),
+    "Jammu and Kashmir":         (16, 60, 1.4),
+    "Jharkhand":                 (25, 56, 2.3),
+    "Karnataka":                 (19, 69, 1.7),
+    "Kerala":                    (6, 19, 1.8),
+    "Madhya Pradesh":            (41, 173, 2.0),
+    "Maharashtra":               (16, 33, 1.8),
+    "Manipur":                   (6, 50, 1.6),
+    "Meghalaya":                 (24, 60, 2.9),
+    "Mizoram":                   (3, 45, 1.9),
+    "Nagaland":                  (7, 50, 1.6),
+    "Odisha":                    (36, 119, 1.8),
+    "Punjab":                    (18, 105, 1.6),
+    "Rajasthan":                 (32, 113, 2.0),
+    "Sikkim":                    (5, 50, 1.1),
+    "Tamil Nadu":                (13, 54, 1.8),
+    "Telangana":                 (21, 43, 1.7),
+    "Tripura":                   (19, 60, 1.7),
+    "Uttar Pradesh":             (38, 167, 2.4),
+    "Uttarakhand":               (24, 103, 1.7),
+    "West Bengal":               (19, 103, 1.6),
     # UTs
-    "Andaman and Nicobar":       (8, 35, 22.0),
-    "Chandigarh":                (14, 40, 28.0),
-    "Dadra and Nagar Haveli":    (18, 50, 30.0),
-    "Daman and Diu":             (18, 50, 30.0),
-    "Delhi":                     (11, 40, 26.0),
-    "Lakshadweep":               (23, 40, 22.0),
-    "Puducherry":                (4, 30, 25.0),
+    "Andaman and Nicobar":       (8, 35, 1.5),
+    "Chandigarh":                (14, 40, 1.5),
+    "Dadra and Nagar Haveli":    (18, 50, 1.8),
+    "Daman and Diu":             (18, 50, 1.7),
+    "Delhi":                     (11, 40, 1.6),
+    "Lakshadweep":               (23, 40, 1.4),
+    "Puducherry":                (4, 30, 1.5),
 }
 
-# TN district-level Health seeds (NFHS-5 district fact sheets, IMR/U5MR/CHE OOP estimates).
-# Names match what's in tn_districts.simplified.geojson (NAME_2). District naming
-# in GADM differs slightly from current TN nomenclature (the source predates several
-# 2019/2020 TN district splits — we work with the geojson's universe of 30).
+# TN district-level Health seeds: (IMR per 1000, MMR per 100k, TFR children/woman)
+# Anchored to NFHS-5 district fact sheets. TFR varies by urbanisation.
 HEALTH_DISTRICT_BASELINES: dict[str, tuple[float, float, float]] = {
     # Tamil Nadu
-    "Chennai":            (10, 38, 28.5),
-    "Coimbatore":         (11, 42, 30.0),
-    "Cuddalore":          (15, 60, 38.0),
-    "Dharmapuri":         (18, 70, 42.0),
-    "Dindigul":           (14, 55, 36.0),
-    "Erode":              (12, 48, 32.0),
-    "Kancheepuram":       (12, 50, 33.0),
-    "Kanniyakumari":      (8, 30, 28.0),
-    "Karur":              (13, 52, 35.0),
-    "Krishnagiri":        (17, 68, 40.0),
-    "Madurai":            (12, 45, 32.0),
-    "Nagapattinam":       (13, 50, 36.0),
-    "Namakkal":           (13, 52, 35.0),
-    "Perambalur":         (15, 58, 38.0),
-    "Pudukkottai":        (14, 56, 37.0),
-    "Ramanathapuram":     (15, 60, 38.0),
-    "Salem":              (15, 62, 39.0),
-    "Sivaganga":          (13, 50, 35.0),
-    "Thanjavur":          (12, 48, 33.0),
-    "Nilgiris":           (10, 40, 30.0),
-    "Theni":              (14, 56, 36.0),
-    "Thiruvallur":        (11, 44, 30.0),
-    "Thiruvarur":         (13, 50, 35.0),
-    "Tiruchchirappalli":  (12, 48, 33.0),
-    "Tirunelveli Kattabo": (13, 52, 36.0),
-    "Tiruvannamalai":     (15, 60, 38.0),
-    "Ariyalur":           (16, 64, 40.0),
-    "Vellore":            (14, 56, 36.5),
-    "Villupuram":         (16, 64, 40.0),
-    "Virudhunagar":       (13, 52, 35.0),
-    "Thoothukudi":        (13, 50, 34.0),
+    "Chennai":            (10, 38, 1.6),
+    "Coimbatore":         (11, 42, 1.7),
+    "Cuddalore":          (15, 60, 1.9),
+    "Dharmapuri":         (18, 70, 2.2),
+    "Dindigul":           (14, 55, 1.9),
+    "Erode":              (12, 48, 1.8),
+    "Kancheepuram":       (12, 50, 1.8),
+    "Kanniyakumari":      (8, 30, 1.6),
+    "Karur":              (13, 52, 1.8),
+    "Krishnagiri":        (17, 68, 2.1),
+    "Madurai":            (12, 45, 1.8),
+    "Nagapattinam":       (13, 50, 1.9),
+    "Namakkal":           (13, 52, 1.8),
+    "Perambalur":         (15, 58, 2.0),
+    "Pudukkottai":        (14, 56, 1.9),
+    "Ramanathapuram":     (15, 60, 2.0),
+    "Salem":              (15, 62, 2.0),
+    "Sivaganga":          (13, 50, 1.9),
+    "Thanjavur":          (12, 48, 1.8),
+    "Nilgiris":           (10, 40, 1.7),
+    "Theni":              (14, 56, 1.9),
+    "Thiruvallur":        (11, 44, 1.7),
+    "Thiruvarur":         (13, 50, 1.9),
+    "Tiruchchirappalli":  (12, 48, 1.8),
+    "Tirunelveli Kattabo": (13, 52, 1.9),
+    "Tiruvannamalai":     (15, 60, 2.0),
+    "Ariyalur":           (16, 64, 2.1),
+    "Vellore":            (14, 56, 1.9),
+    "Villupuram":         (16, 64, 2.0),
+    "Virudhunagar":       (13, 52, 1.9),
+    "Thoothukudi":        (13, 50, 1.8),
 }
 
 # Population & basic geography hints (millions). Drives volume KPIs (admissions, claims).
@@ -111,12 +111,12 @@ STATE_POPULATION_M: dict[str, float] = {
 
 
 def state_health_seed(state: str) -> tuple[float, float, float]:
-    """Return (IMR, MMR, OOPE%) for a state — falls back to India median."""
-    return HEALTH_STATE_BASELINES.get(state, (28.0, 97.0, 47.5))
+    """Return (IMR, MMR, TFR) for a state — falls back to India median."""
+    return HEALTH_STATE_BASELINES.get(state, (28.0, 97.0, 2.0))
 
 
 def district_health_seed(district: str, parent_state: str) -> tuple[float, float, float]:
-    """Return (IMR, MMR, OOPE%) for a district — falls back to its state mean."""
+    """Return (IMR, MMR, TFR) for a district — falls back to its state mean."""
     return HEALTH_DISTRICT_BASELINES.get(
         district, state_health_seed(parent_state)
     )

@@ -16,7 +16,7 @@ META = {
     "kpis": [
         {"code": "imr",  "name": "Infant Mortality Rate",     "short": "IMR",  "unit": "per 1,000 live births",   "direction": "lower_is_better", "accent": "#0c4ca3"},
         {"code": "mmr",  "name": "Maternal Mortality Ratio",  "short": "MMR",  "unit": "per 100,000 live births", "direction": "lower_is_better", "accent": "#c4368e"},
-        {"code": "oope", "name": "Out-of-Pocket Expenditure", "short": "OOPE", "unit": "% of total health exp.",  "direction": "lower_is_better", "accent": "#ff7722"},
+        {"code": "tfr",  "name": "Total Fertility Rate",       "short": "TFR",  "unit": "children per woman",       "direction": "lower_is_better", "accent": "#ff7722"},
     ],
     "central_schemes": [
         {"code": "pmjay", "name": "Ayushman Bharat (PM-JAY)",        "metric": "Hospital admissions authorised today", "unit": "admissions", "value_path": ["central", "pmjay", "admissions"],                  "format": "int", "accent": "#0c4ca3"},
@@ -55,7 +55,7 @@ def national_history() -> dict:
     months = next(iter(per_state.values()))["months"]
     pop = {s: bl.state_population_m(s) for s in states}
     total_pop = sum(pop.values())
-    series = {"imr": [], "mmr": [], "oope": []}
+    series = {"imr": [], "mmr": [], "tfr": []}
     for i in range(len(months)):
         for k in series:
             series[k].append(round(sum(per_state[s]["series"][k][i] * pop[s] for s in states) / total_pop, 1))

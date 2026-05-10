@@ -35,7 +35,7 @@ class HealthSnapshot:
     level: str            # "state" | "district"
     imr: float
     mmr: float
-    oope: float
+    tfr: float
     # Central scheme metrics (per the scheme-KPI research)
     pmjay_admissions: int           # PM-JAY: hospital admissions authorised — output volume tile
     pmjay_claims_cr: float          # PM-JAY: claims paid (₹ Cr)
@@ -59,7 +59,7 @@ class HealthSnapshot:
             "kpis": {
                 "imr":  round(self.imr, 1),
                 "mmr":  round(self.mmr, 1),
-                "oope": round(self.oope, 1),
+                "tfr": round(self.tfr, 1),
             },
             "schemes": {
                 "central": {
@@ -118,34 +118,34 @@ def _noisy(value: float, rng: random.Random, sigma_pct: float) -> float:
 
 
 def health_state_history(state: str) -> dict:
-    """Return {months: [...], series: {imr: [...], mmr: [...], oope: [...]}} for state."""
+    """Return {months: [...], series: {"imr": imr_series, "mmr": mmr_series, "tfr": tfr_series} for state."""
     rng = random.Random(f"{SEED}|state|{state}")
-    imr0, mmr0, oope0 = bl.state_health_seed(state)
+    imr0, mmr0, tfr0 = bl.state_health_seed(state)
     months = _months_back(HISTORY_MONTHS)
-    imr_series, mmr_series, oope_series = [], [], []
+    imr_series, mmr_series, tfr_series = [], [], []
     for i, _m in enumerate(months):
         imr_series.append(round(_noisy(imr0 * _trend(HISTORY_MONTHS, 4.0, i), rng, 3.5), 1))
         mmr_series.append(round(_noisy(mmr0 * _trend(HISTORY_MONTHS, 5.0, i), rng, 4.0), 1))
         # OOPE moves slowly and can go either way
-        oope_series.append(round(_noisy(oope0 * _trend(HISTORY_MONTHS, 1.5, i), rng, 2.0), 1))
+        tfr_series.append(round(_noisy(tfr0 * _trend(HISTORY_MONTHS, 1.5, i), rng, 2.0), 1))
     return {
         "months": [m.strftime("%Y-%m") for m in months],
-        "series": {"imr": imr_series, "mmr": mmr_series, "oope": oope_series},
+        "series": {"imr": imr_series, "mmr": mmr_series, "tfr": tfr_series},
     }
 
 
 def health_district_history(district: str, parent_state: str) -> dict:
     rng = random.Random(f"{SEED}|district|{parent_state}|{district}")
-    imr0, mmr0, oope0 = bl.district_health_seed(district, parent_state)
+    imr0, mmr0, tfr0 = bl.district_health_seed(district, parent_state)
     months = _months_back(HISTORY_MONTHS)
-    imr_series, mmr_series, oope_series = [], [], []
+    imr_series, mmr_series, tfr_series = [], [], []
     for i, _m in enumerate(months):
         imr_series.append(round(_noisy(imr0 * _trend(HISTORY_MONTHS, 3.5, i), rng, 5.0), 1))
         mmr_series.append(round(_noisy(mmr0 * _trend(HISTORY_MONTHS, 4.5, i), rng, 6.0), 1))
-        oope_series.append(round(_noisy(oope0 * _trend(HISTORY_MONTHS, 1.0, i), rng, 3.5), 1))
+        tfr_series.append(round(_noisy(tfr0 * _trend(HISTORY_MONTHS, 1.0, i), rng, 3.5), 1))
     return {
         "months": [m.strftime("%Y-%m") for m in months],
-        "series": {"imr": imr_series, "mmr": mmr_series, "oope": oope_series},
+        "series": {"imr": imr_series, "mmr": mmr_series, "tfr": tfr_series},
     }
 
 
@@ -173,14 +173,14 @@ def _drift_pct(value: float, t: float, period: float, amp_pct: float) -> float:
 
 def health_state_snapshot(state: str, t: float) -> HealthSnapshot:
     rng = random.Random(f"{SEED}|state|{state}|tick")
-    imr0, mmr0, oope0 = bl.state_health_seed(state)
+    imr0, mmr0, tfr0 = bl.state_health_seed(state)
     pop_m = bl.state_population_m(state)
     outcomes = bl.state_health_outcomes(state)
 
     drift = 0.005
     imr = imr0 * (1.0 + drift * math.sin(t / 17.0 + rng.random() * 6.28))
     mmr = mmr0 * (1.0 + drift * math.sin(t / 23.0 + rng.random() * 6.28))
-    oope = oope0 * (1.0 + drift * math.cos(t / 31.0))
+    tfr = tfr0 * (1.0 + drift * math.cos(t / 31.0))
 
     seconds_today = int(t) % 86400
     daily_admit = _baseline_admissions_per_day(pop_m)
@@ -204,7 +204,7 @@ def health_state_snapshot(state: str, t: float) -> HealthSnapshot:
 
     return HealthSnapshot(
         region=state, parent=None, level="state",
-        imr=imr, mmr=mmr, oope=oope,
+        imr=imr, mmr=mmr, tfr=tfr,
         pmjay_admissions=pmjay_admissions, pmjay_claims_cr=pmjay_claims_cr,
         nhm_idr_pct=nhm_idr, nhm_phc_funding_cr=nhm_phc_funding_cr,
         pmsma_high_risk_lakh=pmsma_hr, pmsma_anc_checkups=pmsma_anc,
@@ -219,7 +219,7 @@ def health_state_snapshot(state: str, t: float) -> HealthSnapshot:
 
 def health_district_snapshot(district: str, parent_state: str, t: float) -> HealthSnapshot:
     rng = random.Random(f"{SEED}|district|{parent_state}|{district}|tick")
-    imr0, mmr0, oope0 = bl.district_health_seed(district, parent_state)
+    imr0, mmr0, tfr0 = bl.district_health_seed(district, parent_state)
     state_pop_m = bl.state_population_m(parent_state)
     district_pop_m = max(0.5, state_pop_m / 32.0)
     state_outcomes = bl.state_health_outcomes(parent_state)
@@ -227,7 +227,7 @@ def health_district_snapshot(district: str, parent_state: str, t: float) -> Heal
     drift = 0.008
     imr = imr0 * (1.0 + drift * math.sin(t / 13.0 + rng.random() * 6.28))
     mmr = mmr0 * (1.0 + drift * math.sin(t / 19.0 + rng.random() * 6.28))
-    oope = oope0 * (1.0 + drift * math.cos(t / 29.0))
+    tfr = tfr0 * (1.0 + drift * math.cos(t / 29.0))
 
     seconds_today = int(t) % 86400
     jitter = rng.gauss(1.0, 0.06)
@@ -250,7 +250,7 @@ def health_district_snapshot(district: str, parent_state: str, t: float) -> Heal
 
     return HealthSnapshot(
         region=district, parent=parent_state, level="district",
-        imr=imr, mmr=mmr, oope=oope,
+        imr=imr, mmr=mmr, tfr=tfr,
         pmjay_admissions=pmjay_admissions, pmjay_claims_cr=pmjay_claims_cr,
         nhm_idr_pct=district_idr, nhm_phc_funding_cr=nhm_phc_funding_cr,
         pmsma_high_risk_lakh=district_hr, pmsma_anc_checkups=pmsma_anc,
@@ -273,7 +273,7 @@ def detect_state_anomalies(states: list[str]) -> list[dict]:
     out: list[dict] = []
     for s in states:
         h = health_state_history(s)
-        for metric, threshold in (("imr", 3.0), ("mmr", 3.0), ("oope", 5.0)):
+        for metric, threshold in (("imr", 3.0), ("mmr", 3.0), ("tfr", 0.3)):
             series = h["series"][metric]
             if len(series) < 2:
                 continue
@@ -343,13 +343,13 @@ def health_national_snapshot(t: float) -> dict:
     total_pop = sum(bl.state_population_m(s) for s in states)
     imr = sum(sn.imr * bl.state_population_m(sn.region) for sn in snaps) / total_pop
     mmr = sum(sn.mmr * bl.state_population_m(sn.region) for sn in snaps) / total_pop
-    oope = sum(sn.oope * bl.state_population_m(sn.region) for sn in snaps) / total_pop
+    tfr = sum(sn.tfr * bl.state_population_m(sn.region) for sn in snaps) / total_pop
     idr = sum(sn.nhm_idr_pct * bl.state_population_m(sn.region) for sn in snaps) / total_pop
     return {
         "kpis": {
             "imr":  round(imr, 1),
             "mmr":  round(mmr, 1),
-            "oope": round(oope, 1),
+            "tfr": round(tfr, 1),
         },
         "schemes": {
             "central": {
