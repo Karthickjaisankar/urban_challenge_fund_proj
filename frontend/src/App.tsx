@@ -117,37 +117,41 @@ export default function App() {
   const filterDeptMeta = deptMetas.find((d) => d.code === filterDept);
 
   // Compute dept Index Scores for all regions visible on the map.
-  // India view:  score per state  (scores change when filterDept changes)
+  // India view:  score per state  (defaults to Health when no dept filter chosen)
   // State view:  score per district
+  // activeMeta drives the score — it's the selected filter dept, falling back to Health.
+  const activeScoringMeta = filterDeptMeta ?? deptMetas.find((d: any) => d.code === "health");
+
   const mapScores = useMemo<Record<string, number>>(() => {
-    if (!filterDeptMeta?.kpis) return {};
+    if (!activeScoringMeta?.kpis) return {};
 
     if (view === "state") {
       // District-level scores
       let regionsKpis: Record<string, Record<string, number>> = {};
-      if (filterDept === "health" && districtSnap.data) {
+      const effectiveDept = filterDept ?? "health";
+      if (effectiveDept === "health" && districtSnap.data) {
         Object.entries(districtSnap.data.districts).forEach(([d, s]: any) => {
           regionsKpis[d] = s.kpis ?? {};
         });
       } else if (snapshot?.states?.[stateName!]) {
         const distList = stateName === "Gujarat" ? GJ_DISTRICTS : TN_DISTRICTS;
         const stateKpis = snapshot.states[stateName!].kpis ?? {};
-        simulateDistrictKPIs(stateKpis, distList, filterDeptMeta).forEach((r) => {
+        simulateDistrictKPIs(stateKpis, distList, activeScoringMeta).forEach((r) => {
           regionsKpis[r.region] = r.kpis;
         });
       }
       if (!Object.keys(regionsKpis).length) return {};
-      return computeAllScores(regionsKpis, filterDeptMeta.kpis);
+      return computeAllScores(regionsKpis, activeScoringMeta.kpis);
     }
 
-    // India view — state-level scores
+    // India view — state-level scores (always visible, defaults to Health)
     if (!snapshot?.states) return {};
     const regionsKpis: Record<string, Record<string, number>> = {};
     Object.entries(snapshot.states).forEach(([s, snap]: any) => {
       regionsKpis[s] = snap.kpis ?? {};
     });
-    return computeAllScores(regionsKpis, filterDeptMeta.kpis);
-  }, [filterDeptMeta, snapshot, districtSnap.data, view, stateName, filterDept]);
+    return computeAllScores(regionsKpis, activeScoringMeta.kpis);
+  }, [activeScoringMeta, snapshot, districtSnap.data, view, stateName, filterDept]);
   const filterKpiMeta  = filterDeptMeta?.kpis?.[0];
 
   /* ── District ranking for StateDistrictPanel ─────────────────────── */
@@ -301,14 +305,12 @@ export default function App() {
                   : view === "state" ? `📍 ${stateName}`
                   : `📌 ${districtName}`}
               </span>
-              {filterDept && (
-                <>
-                  <span className="text-slate-200 mx-0.5">|</span>
-                  <span className="text-[11px] font-semibold" style={{ color: accentColor }}>
-                    {DEPT_REGISTRY.find(d => d.code === filterDept)?.name}
-                  </span>
-                </>
-              )}
+              {/* Always show which dept score is colouring the map */}
+              <span className="text-slate-200 mx-0.5">|</span>
+              <span className="text-[11px] font-semibold" style={{ color: filterDept ? accentColor : "#94A3B8" }}>
+                {DEPT_REGISTRY.find(d => d.code === (filterDept ?? "health"))?.name} Score
+                {!filterDept && <span className="text-[9px] text-slate-400 ml-1">(default)</span>}
+              </span>
               {grade && (
                 <>
                   <span className="text-slate-200 mx-0.5">|</span>
