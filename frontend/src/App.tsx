@@ -125,8 +125,8 @@ export default function App() {
   const mapScores = useMemo<Record<string, number>>(() => {
     if (!activeScoringMeta?.kpis) return {};
 
-    if (view === "state") {
-      // District-level scores
+    if (view === "state" || view === "district") {
+      // District-level scores (both state-view and district-view show district geojson)
       let regionsKpis: Record<string, Record<string, number>> = {};
       const effectiveDept = filterDept ?? "health";
       if (effectiveDept === "health" && districtSnap.data) {
