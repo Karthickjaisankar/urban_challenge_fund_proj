@@ -254,8 +254,17 @@ html, body, #root { height: 100%; overflow: hidden; }
   }
   .dept-filter-sheet.open { transform: translateY(0); }
 
-  /* ── Map controls: hide zoom on mobile (pinch instead) ─────────────── */
-  .leaflet-control-zoom { display: none !important; }
+  /* ── Map controls: hide ALL leaflet controls on mobile (pinch instead) ── */
+  .leaflet-control-container,
+  .leaflet-top,
+  .leaflet-bottom {
+    display: none !important;
+  }
+
+  /* Raise right-panel above Leaflet's default z-index (1000) */
+  .right-panel {
+    z-index: 1100;
+  }
 
   /* Shift the breadcrumb pill up to avoid top notch */
   .map-breadcrumb {

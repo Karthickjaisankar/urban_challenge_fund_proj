@@ -430,8 +430,8 @@ export default function App() {
           ) : null;
         })()}
 
-        {/* Home stats strip */}
-        {view === "india" && snapshot && (
+        {/* Home stats strip — desktop only (overlaps map on mobile) */}
+        {!isMobile && view === "india" && snapshot && (
           <HomeStatsStrip
             snapshot={snapshot}
             deptMetas={deptMetas.slice(0, 3)}
