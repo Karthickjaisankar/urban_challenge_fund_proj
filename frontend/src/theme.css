@@ -147,11 +147,12 @@ html, body, #root { height: 100%; overflow: hidden; }
 
 /* ── Leaflet controls: constrain to map area on desktop ──────────────────── */
 .leaflet-control-container {
-  width: calc(100% - 420px) !important; /* Subtract right panel width */
+  width: calc(100% - 440px) !important; /* Subtract right panel width + margin */
+  max-width: calc(100vw - 440px) !important;
 }
 
 .leaflet-control-zoom {
-  margin-right: 12px !important;
+  margin-right: 16px !important;
   margin-top: 12px !important;
 }
 
@@ -218,19 +219,19 @@ html, body, #root { height: 100%; overflow: hidden; }
     /* Sit above the bottom nav bar */
     bottom: 60px;
     width: 100%;
-    /* 50dvh keeps ~50% of the map visible above the sheet */
-    max-height: 50dvh;
+    /* 40dvh ensures plenty of map remains visible above the sheet */
+    max-height: 40dvh;
     border-left: none;
     border-top: 1px solid rgba(0,0,0,0.08);
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -8px 32px -4px rgba(0,0,0,0.15);
-    /* Start hidden at the bottom */
+    /* Start completely hidden below the viewport */
     transform: translateY(100%);
     transition: transform 350ms cubic-bezier(.2,.9,.2,1);
     padding-bottom: 0;
   }
   .right-panel.open {
-    /* When open, slide up to show the sheet while keeping map visible */
+    /* When open, only slide up to 40dvh + 60px nav = visible portion */
     transform: translateY(0);
   }
 
