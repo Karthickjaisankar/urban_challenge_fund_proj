@@ -9,19 +9,24 @@ import type { Landmark } from "@/lib/tourismLandmarks";
 interface Props {
   landmark: Landmark;
   districtName: string;
+  isMobile?: boolean;
   onClose: () => void;
 }
 
-export function TourismLandmarkOverlay({ landmark, districtName, onClose }: Props) {
+export function TourismLandmarkOverlay({ landmark, districtName, isMobile, onClose }: Props) {
   const [imgError, setImgError] = useState(false);
+
+  const positionClass = isMobile
+    ? "fixed bottom-[76px] left-2 z-[800] w-60 rounded-2xl overflow-hidden shadow-2xl"
+    : "absolute top-16 left-4 z-[800] w-72 rounded-2xl overflow-hidden shadow-2xl";
 
   return (
     <div
-      className="absolute top-16 left-4 z-[800] w-72 rounded-2xl overflow-hidden shadow-2xl"
+      className={positionClass}
       style={{ animation: "fadeUp 280ms ease-out" }}
     >
       {/* Image */}
-      <div className="relative h-44 bg-slate-100 overflow-hidden">
+      <div className={`relative ${isMobile ? "h-36" : "h-44"} bg-slate-100 overflow-hidden`}>
         {!imgError ? (
           <img
             src={landmark.imageUrl}
@@ -67,3 +72,4 @@ export function TourismLandmarkOverlay({ landmark, districtName, onClose }: Prop
     </div>
   );
 }
+

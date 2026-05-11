@@ -50,6 +50,9 @@ export function DeptDetailPanel({
 
   return (
     <div className="flex flex-col h-full bg-surface-100">
+      {/* Drag handle — visible on mobile bottom sheet */}
+      <div className="sheet-handle" />
+
       {/* Header */}
       <div className="bg-white border-b border-slate-200 shrink-0"
            style={{ borderTop: `3px solid ${accent}` }}>

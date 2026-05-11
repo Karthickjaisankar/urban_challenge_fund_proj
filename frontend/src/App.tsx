@@ -16,6 +16,7 @@ import { DEPT_REGISTRY, STATE_CAPITALS, GEOJSON_TO_BACKEND } from "@/lib/constan
 import { computeAllScores, computeScoreWithBreakdown, scoreGrade } from "@/lib/scoring";
 import { TN_DISTRICTS, GJ_DISTRICTS, simulateDistrictKPIs } from "@/lib/simulateDistricts";
 import { LeftSidebar } from "@/components/LeftSidebar";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ICCCMapCanvas } from "@/components/ICCCMapCanvas";
 import { HomeStatsStrip } from "@/components/HomeStatsStrip";
 import { StateDistrictPanel } from "@/components/StateDistrictPanel";
@@ -50,6 +51,15 @@ export default function App() {
   const [filterDept, setFilterDept]       = useState<string | null>(null);
   const [districtDeptCode, setDistrictDeptCode] = useState<string | null>(null); // dept opened from district detail
   const [tickerOpen, setTickerOpen]       = useState(false);
+
+  /* ── Mobile detection ────────────────────────────────────────────── */
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   /* ── Right panel mode ────────────────────────────────────────────── */
   const rightMode = view === "india"
@@ -414,6 +424,7 @@ export default function App() {
             <TourismLandmarkOverlay
               landmark={landmark}
               districtName={districtName}
+              isMobile={isMobile}
               onClose={() => districtDeptCode === "tourism" ? setDistrictDeptCode(null) : setDistrictName(null)}
             />
           ) : null;
@@ -494,6 +505,22 @@ export default function App() {
       </div>
 
       {tickerOpen && <TickerInbox onClose={() => setTickerOpen(false)} />}
+
+      {/* Mobile bottom navigation — only rendered on small screens */}
+      {isMobile && (
+        <MobileBottomNav
+          view={view}
+          stateName={stateName}
+          districtName={districtName}
+          filterDept={filterDept}
+          connected={connected}
+          ticketCount={openTickets}
+          onGoIndia={handleGoIndia}
+          onGoState={handleGoState}
+          onFilterDept={setFilterDept}
+          onOpenTickets={() => setTickerOpen(true)}
+        />
+      )}
     </div>
   );
 }
