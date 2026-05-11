@@ -16,7 +16,6 @@ import { DEPT_REGISTRY, STATE_CAPITALS, GEOJSON_TO_BACKEND } from "@/lib/constan
 import { computeAllScores, computeScoreWithBreakdown, scoreGrade } from "@/lib/scoring";
 import { TN_DISTRICTS, GJ_DISTRICTS, simulateDistrictKPIs } from "@/lib/simulateDistricts";
 import { LeftSidebar } from "@/components/LeftSidebar";
-import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ICCCMapCanvas } from "@/components/ICCCMapCanvas";
 import { HomeStatsStrip } from "@/components/HomeStatsStrip";
 import { StateDistrictPanel } from "@/components/StateDistrictPanel";
@@ -51,15 +50,6 @@ export default function App() {
   const [filterDept, setFilterDept]       = useState<string | null>(null);
   const [districtDeptCode, setDistrictDeptCode] = useState<string | null>(null); // dept opened from district detail
   const [tickerOpen, setTickerOpen]       = useState(false);
-
-  /* ── Mobile detection ────────────────────────────────────────────── */
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   /* ── Right panel mode ────────────────────────────────────────────── */
   const rightMode = view === "india"
@@ -373,7 +363,7 @@ export default function App() {
           const focusScore  = focusRegion ? mapScores[focusRegion] : undefined;
           const grade       = Number.isFinite(focusScore) ? scoreGrade(focusScore!) : null;
           return (
-            <div className="map-breadcrumb absolute top-4 left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200"
+            <div className="absolute left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 top-4 max-md:top-16"
                  style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
               <span className="text-[12px] font-bold text-slate-700">
                 {view === "india" ? "🇮🇳 All India"
@@ -424,14 +414,13 @@ export default function App() {
             <TourismLandmarkOverlay
               landmark={landmark}
               districtName={districtName}
-              isMobile={isMobile}
               onClose={() => districtDeptCode === "tourism" ? setDistrictDeptCode(null) : setDistrictName(null)}
             />
           ) : null;
         })()}
 
-        {/* Home stats strip — desktop only (overlaps map on mobile) */}
-        {!isMobile && view === "india" && snapshot && (
+        {/* Home stats strip */}
+        {view === "india" && snapshot && (
           <HomeStatsStrip
             snapshot={snapshot}
             deptMetas={deptMetas.slice(0, 3)}
@@ -505,45 +494,6 @@ export default function App() {
       </div>
 
       {tickerOpen && <TickerInbox onClose={() => setTickerOpen(false)} />}
-
-      {/* Mobile top header — brand bar shown only on mobile */}
-      {isMobile && (
-        <div className="mobile-header">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mr-3"
-               style={{ background: "linear-gradient(135deg, #FF7722, #c4368e 60%, #7FE0FF)" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-              <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-            </svg>
-          </div>
-          <div>
-            <div className="text-[14px] font-black text-white leading-none" style={{ fontFamily: "Fraunces, serif" }}>UCF · ICCC</div>
-            <div className="text-[9px] text-white/40 uppercase tracking-[0.18em] mt-0.5">MoHUA · Command Centre</div>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-green-400 pulse-dot" : "bg-white/20"}`} />
-            <span className={`text-[10px] font-semibold ${connected ? "text-green-400" : "text-white/30"}`}>
-              {connected ? "Live" : "…"}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile bottom navigation — only rendered on small screens */}
-      {isMobile && (
-        <MobileBottomNav
-          view={view}
-          stateName={stateName}
-          districtName={districtName}
-          filterDept={filterDept}
-          connected={connected}
-          ticketCount={openTickets}
-          onGoIndia={handleGoIndia}
-          onGoState={handleGoState}
-          onFilterDept={setFilterDept}
-          onOpenTickets={() => setTickerOpen(true)}
-        />
-      )}
     </div>
   );
 }

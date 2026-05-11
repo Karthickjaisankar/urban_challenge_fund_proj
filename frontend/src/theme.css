@@ -145,6 +145,16 @@ html, body, #root { height: 100%; overflow: hidden; }
   backdrop-filter: blur(6px);
 }
 
+/* ── Leaflet controls: constrain to map area on desktop ──────────────────── */
+.leaflet-control-container {
+  width: calc(100% - 420px) !important; /* Subtract right panel width */
+}
+
+.leaflet-control-zoom {
+  margin-right: 12px !important;
+  margin-top: 12px !important;
+}
+
 /* ── Fade-up animation for tourism overlay ─────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }
@@ -178,8 +188,9 @@ html, body, #root { height: 100%; overflow: hidden; }
     position: fixed;
     top: 0; left: 0; right: 0;
     height: 52px;
-    z-index: 620;
-    background: rgba(8,14,22,0.96);
+    /* Above breadcrumb (z-700) so header is never obscured */
+    z-index: 750;
+    background: rgba(8,14,22,0.97);
     border-bottom: 1px solid rgba(255,255,255,0.08);
     display: flex;
     align-items: center;
@@ -188,13 +199,15 @@ html, body, #root { height: 100%; overflow: hidden; }
     backdrop-filter: blur(12px);
   }
 
-  /* Push breadcrumb pill below the mobile header */
+  /* Push breadcrumb pill below the mobile header with a comfortable gap */
   .map-breadcrumb {
-    top: 60px !important;
-    transform: translateX(-50%) !important; /* keep centred */
+    top: 64px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
     max-width: calc(100vw - 32px);
     flex-wrap: wrap;
     justify-content: center;
+    font-size: 11px;
   }
 
   /* ── Right panel becomes a BOTTOM SHEET on mobile ── */
@@ -205,18 +218,25 @@ html, body, #root { height: 100%; overflow: hidden; }
     /* Sit above the bottom nav bar */
     bottom: 60px;
     width: 100%;
-    max-height: 72dvh;
+    /* 50dvh keeps ~50% of the map visible above the sheet */
+    max-height: 50dvh;
     border-left: none;
     border-top: 1px solid rgba(0,0,0,0.08);
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -8px 32px -4px rgba(0,0,0,0.15);
-    /* Start hidden below the nav */
-    transform: translateY(calc(100% + 60px));
+    /* Start hidden at the bottom */
+    transform: translateY(100%);
     transition: transform 350ms cubic-bezier(.2,.9,.2,1);
     padding-bottom: 0;
   }
   .right-panel.open {
+    /* When open, slide up to show the sheet while keeping map visible */
     transform: translateY(0);
+  }
+
+  /* Raise right-panel above Leaflet's default z-index (1000) */
+  .right-panel {
+    z-index: 1100;
   }
 
   /* ── Bottom nav bar ─────────────────────────────────────────────────── */
@@ -278,16 +298,15 @@ html, body, #root { height: 100%; overflow: hidden; }
   }
   .dept-filter-sheet.open { transform: translateY(0); }
 
-  /* ── Map controls: hide ALL leaflet controls on mobile (pinch instead) ── */
-  .leaflet-control-container,
-  .leaflet-top,
-  .leaflet-bottom {
-    display: none !important;
+  /* ── Map controls: show on mobile but constrain position ──────────── */
+  .leaflet-control-container {
+    width: 100% !important;
   }
 
-  /* Raise right-panel above Leaflet's default z-index (1000) */
-  .right-panel {
-    z-index: 1100;
+  .leaflet-control-zoom {
+    margin-right: 8px !important;
+    margin-bottom: 70px !important; /* Position above bottom nav */
+    margin-top: 12px !important;
   }
 
   /* Shift the breadcrumb pill up to avoid top notch */
