@@ -173,23 +173,47 @@ html, body, #root { height: 100%; overflow: hidden; }
     height: 100dvh;
   }
 
+  /* ── Mobile top header bar ──────────────────────────────────────── */
+  .mobile-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    z-index: 620;
+    background: rgba(8,14,22,0.96);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    padding-top: env(safe-area-inset-top, 0px);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Push breadcrumb pill below the mobile header */
+  .map-breadcrumb {
+    top: 60px !important;
+    transform: translateX(-50%) !important; /* keep centred */
+    max-width: calc(100vw - 32px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   /* ── Right panel becomes a BOTTOM SHEET on mobile ── */
   .right-panel {
     top: auto;
     right: 0;
     left: 0;
-    bottom: 0;
+    /* Sit above the bottom nav bar */
+    bottom: 60px;
     width: 100%;
-    /* Leave room for bottom nav (60px) */
-    max-height: calc(75dvh - 60px);
+    max-height: 72dvh;
     border-left: none;
     border-top: 1px solid rgba(0,0,0,0.08);
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -8px 32px -4px rgba(0,0,0,0.15);
-    transform: translateY(100%);
+    /* Start hidden below the nav */
+    transform: translateY(calc(100% + 60px));
     transition: transform 350ms cubic-bezier(.2,.9,.2,1);
-    /* Add bottom padding for safe area (iOS home bar) */
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: 0;
   }
   .right-panel.open {
     transform: translateY(0);
