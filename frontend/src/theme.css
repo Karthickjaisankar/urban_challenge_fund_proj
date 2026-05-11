@@ -146,14 +146,17 @@ html, body, #root { height: 100%; overflow: hidden; }
 }
 
 /* ── Leaflet controls: constrain to map area on desktop ──────────────────── */
-.leaflet-control-container {
-  width: calc(100% - 440px) !important; /* Subtract right panel width + margin */
-  max-width: calc(100vw - 440px) !important;
-}
+@media (min-width: 769px) {
+  .leaflet-control-container {
+    width: calc(100% - 480px) !important;
+    right: 450px !important;
+    left: auto !important;
+  }
 
-.leaflet-control-zoom {
-  margin-right: 16px !important;
-  margin-top: 12px !important;
+  .leaflet-control-zoom {
+    margin-right: 20px !important;
+    margin-top: 16px !important;
+  }
 }
 
 /* ── Fade-up animation for tourism overlay ─────────────────────────────── */
@@ -219,8 +222,8 @@ html, body, #root { height: 100%; overflow: hidden; }
     /* Sit above the bottom nav bar */
     bottom: 60px;
     width: 100%;
-    /* 40dvh ensures plenty of map remains visible above the sheet */
-    max-height: 40dvh;
+    /* 25dvh (25% of viewport) - just enough to show key info without blocking map */
+    max-height: 25dvh;
     border-left: none;
     border-top: 1px solid rgba(0,0,0,0.08);
     border-radius: 20px 20px 0 0;
@@ -229,9 +232,10 @@ html, body, #root { height: 100%; overflow: hidden; }
     transform: translateY(100%);
     transition: transform 350ms cubic-bezier(.2,.9,.2,1);
     padding-bottom: 0;
+    overflow-y: auto;
   }
   .right-panel.open {
-    /* When open, only slide up to 40dvh + 60px nav = visible portion */
+    /* When open, slide up to show the sheet while keeping 75% of map visible */
     transform: translateY(0);
   }
 
@@ -302,12 +306,14 @@ html, body, #root { height: 100%; overflow: hidden; }
   /* ── Map controls: show on mobile but constrain position ──────────── */
   .leaflet-control-container {
     width: 100% !important;
+    right: auto !important;
+    left: auto !important;
   }
 
   .leaflet-control-zoom {
-    margin-right: 8px !important;
-    margin-bottom: 70px !important; /* Position above bottom nav */
-    margin-top: 12px !important;
+    margin-right: 12px !important;
+    margin-bottom: 90px !important; /* Position above bottom nav and sheet */
+    margin-top: 64px !important; /* Below mobile header */
   }
 
   /* Shift the breadcrumb pill up to avoid top notch */

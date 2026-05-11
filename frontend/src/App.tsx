@@ -363,7 +363,7 @@ export default function App() {
           const focusScore  = focusRegion ? mapScores[focusRegion] : undefined;
           const grade       = Number.isFinite(focusScore) ? scoreGrade(focusScore!) : null;
           return (
-            <div className="absolute left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 top-4 max-md:top-20"
+            <div className="absolute left-1/2 -translate-x-1/2 z-[700] flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 top-4 max-md:top-12"
                  style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
               <span className="text-[12px] font-bold text-slate-700">
                 {view === "india" ? "🇮🇳 All India"
